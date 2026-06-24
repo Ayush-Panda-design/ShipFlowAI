@@ -4,6 +4,15 @@ import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/db";
 
 export const auth = betterAuth({
+  baseURL: {
+    allowedHosts: [
+      "localhost:3000",
+      "localhost:3001",
+      "127.0.0.1:3000",
+      "127.0.0.1:3001",
+    ],
+    protocol: "http",
+  },
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
@@ -11,14 +20,10 @@ export const auth = betterAuth({
     enabled: true,
   },
   socialProviders: {
-    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
-      ? {
-          github: {
-            clientId: process.env.GITHUB_CLIENT_ID,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET,
-          },
-        }
-      : {}),
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID as string,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+    },
   },
   trustedOrigins: [
     "http://localhost:3000",

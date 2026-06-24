@@ -1,7 +1,14 @@
+import Link from "next/link"
 import { ModeToggle } from "@/components/ui/mode-toggle"
+import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import { getServerSession } from "@/lib/auth-session"
+import { signOutAction } from "@/lib/actions/auth"
+import { DEFAULT_POST_AUTH_PATH } from "@/lib/auth-proxy"
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession()
+
   return (
     <div className="relative flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <div className="absolute top-4 right-4">
@@ -38,7 +45,43 @@ export default function Home() {
             center.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+        <div className="flex flex-col items-center gap-4 sm:items-start">
+          {session ? (
+            <div className="flex flex-col items-center gap-3 sm:items-start">
+              <p className="text-sm text-muted-foreground">
+                Signed in as {session.user.email ?? session.user.name}
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={DEFAULT_POST_AUTH_PATH}
+                  className="flex h-12 items-center justify-center rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+                >
+                  Go to dashboard
+                </Link>
+                <form action={signOutAction}>
+                  <Button type="submit" variant="outline" className="h-12 rounded-full px-5">
+                    Sign out
+                  </Button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={`/sign-in?callbackUrl=${encodeURIComponent(DEFAULT_POST_AUTH_PATH)}`}
+                className="flex h-12 items-center justify-center rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+              >
+                Sign in
+              </Link>
+              <Link
+                href={DEFAULT_POST_AUTH_PATH}
+                className="flex h-12 items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a]"
+              >
+                Dashboard
+              </Link>
+            </div>
+          )}
+          <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
           <a
             className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
@@ -62,6 +105,7 @@ export default function Home() {
           >
             Documentation
           </a>
+          </div>
         </div>
       </main>
     </div>
