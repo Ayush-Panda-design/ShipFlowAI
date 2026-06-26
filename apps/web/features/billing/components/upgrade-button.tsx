@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
@@ -69,7 +70,7 @@ export function UpgradeButton({
           razorpay_payment_id: string;
           razorpay_signature: string;
         }) => {
-          await fetch("/api/razorpay/verify", {
+          const verifyResponse = await fetch("/api/razorpay/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -77,6 +78,22 @@ export function UpgradeButton({
               ...response,
             }),
           });
+
+          const verifyData = (await verifyResponse.json()) as {
+            error?: string;
+            ok?: boolean;
+            alreadyProcessed?: boolean;
+          };
+
+          if (!verifyResponse.ok) {
+            throw new Error(verifyData.error ?? "Payment verification failed");
+          }
+
+          toast.success(
+            verifyData.alreadyProcessed
+              ? "Pro plan is already active for this workspace."
+              : "Upgraded to Pro — credits and limits updated.",
+          );
           router.refresh();
         },
       });

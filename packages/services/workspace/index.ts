@@ -45,6 +45,30 @@ export async function createWorkspace(userId: string, name: string) {
   });
 }
 
+export async function countConnectedRepositories(workspaceId: string) {
+  return prisma.connectedRepository.count({
+    where: { project: { workspaceId } },
+  });
+}
+
+export async function assertWithinRepoLimit(workspaceId: string) {
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { repoLimit: true },
+  });
+
+  if (!workspace) {
+    throw new Error("Workspace not found");
+  }
+
+  const connected = await countConnectedRepositories(workspaceId);
+  if (connected >= workspace.repoLimit) {
+    throw new Error(
+      `Repository limit reached (${workspace.repoLimit}). Upgrade to Pro on Billing.`,
+    );
+  }
+}
+
 export async function ensureDefaultWorkspace(userId: string, userName: string) {
   const existing = await listWorkspacesForUser(userId);
   if (existing.length > 0) {

@@ -12,6 +12,10 @@ import {
   shipflowFeatureNotFound,
 } from "@/features/shipflow/server/job-results";
 import { generateClarificationQuestions, generatePrdFromRequest } from "./ai";
+import {
+  findSimilarFeatureRequests,
+  formatSimilarFeaturesForClarify,
+} from "./feature-similarity";
 
 /** Deducts AI_CREDIT_COSTS.clarify / .prd via chargeFeatureCreditsForJob before AI work. */
 export const clarifyFeatureRequest = inngest.createFunction(
@@ -32,9 +36,17 @@ export const clarifyFeatureRequest = inngest.createFunction(
 
     await updateFeatureStatus(featureRequestId, "clarifying");
 
+    const similar = await findSimilarFeatureRequests(
+      feature.projectId,
+      feature.title,
+      featureRequestId,
+    );
+    const similarContext = formatSimilarFeaturesForClarify(similar);
+
     const questions = await generateClarificationQuestions(
       feature.title,
       feature.description,
+      similarContext,
     );
 
     await addClarification(featureRequestId, "assistant", questions);

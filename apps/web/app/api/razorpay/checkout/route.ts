@@ -29,6 +29,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
     }
 
+    if (membership.role !== "owner") {
+      return NextResponse.json(
+        { error: "Only workspace owners can upgrade billing" },
+        { status: 403 },
+      );
+    }
+
     const checkout = await createProCheckoutOrder(workspaceId);
 
     return NextResponse.json({

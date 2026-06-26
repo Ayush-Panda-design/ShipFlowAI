@@ -295,6 +295,7 @@ model Subscription {
   workspaceId            String    @unique
   plan                   String    @default("free")
   razorpaySubscriptionId String?
+  razorpayPaymentId      String?   @unique
   razorpayCustomerId     String?
   status                 String    @default("active")
   currentPeriodEnd       DateTime?

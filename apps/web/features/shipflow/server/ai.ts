@@ -69,16 +69,30 @@ export async function generateTasksFromPrd(prdMarkdown: string) {
   }>;
 }
 
-const CLARIFY_SYSTEM = `You are a product discovery agent. Given a feature request, ask 2-3 concise follow-up questions if context is missing. If the request is clear enough, respond that no clarification is needed and explain why. Be helpful if the feature may already exist in typical SaaS products.`;
+const CLARIFY_SYSTEM = `You are a product discovery agent. Given a feature request, ask 2-3 concise follow-up questions if context is missing. If the request is clear enough, respond that no clarification is needed and explain why.
 
-export async function generateClarificationQuestions(title: string, description: string) {
+When similar existing features are listed in the prompt, explicitly educate the user: name the existing feature(s), explain overlap, and recommend extending or reusing them instead of duplicating work.`;
+
+export async function generateClarificationQuestions(
+  title: string,
+  description: string,
+  similarFeaturesContext = "",
+) {
   const model = getReviewModel();
 
   const { text } = await generateText({
     model,
     maxOutputTokens: 1024,
     system: CLARIFY_SYSTEM,
-    prompt: `Title: ${title}\n\nDescription:\n${description}`,
+    prompt: [
+      similarFeaturesContext,
+      `Title: ${title}`,
+      "",
+      `Description:`,
+      description,
+    ]
+      .filter(Boolean)
+      .join("\n"),
   });
 
   return text.trim();

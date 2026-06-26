@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 
-import {
-  PRO_PLAN_LIMITS,
-  verifyRazorpayWebhookSignature,
-} from "@/lib/razorpay";
-import { prisma } from "@/lib/db";
+import { upgradeWorkspaceToPro } from "@/lib/billing/upgrade-workspace";
+import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 
 type RazorpayWebhookPayload = {
   event: string;
@@ -49,36 +46,21 @@ export async function POST(request: Request) {
   const workspaceId =
     payment?.notes?.workspaceId ??
     payload.payload?.order?.entity?.notes?.workspaceId;
+  const orderId = payment?.order_id ?? payload.payload?.order?.entity?.id;
 
-  if (!workspaceId || payment?.status !== "captured") {
+  if (!workspaceId || !orderId || payment?.status !== "captured") {
     return NextResponse.json({ error: "Missing workspace context" }, { status: 400 });
   }
 
-  await prisma.$transaction([
-    prisma.workspace.update({
-      where: { id: workspaceId },
-      data: {
-        plan: "pro",
-        aiCredits: PRO_PLAN_LIMITS.aiCredits,
-        repoLimit: PRO_PLAN_LIMITS.repoLimit,
-      },
-    }),
-    prisma.subscription.upsert({
-      where: { workspaceId },
-      create: {
-        workspaceId,
-        plan: "pro",
-        status: "active",
-        razorpaySubscriptionId: payment.order_id ?? payment.id ?? null,
-      },
-      update: {
-        plan: "pro",
-        status: "active",
-        razorpaySubscriptionId: payment.order_id ?? payment.id ?? null,
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-    }),
-  ]);
+  const result = await upgradeWorkspaceToPro(
+    workspaceId,
+    orderId,
+    payment.id,
+  );
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    upgraded: result.upgraded,
+    alreadyProcessed: !result.upgraded,
+  });
 }
