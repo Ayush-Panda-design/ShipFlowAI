@@ -9,11 +9,18 @@ import { resolveCallbackUrl, SIGN_IN_PATH, DEFAULT_POST_AUTH_PATH } from "@/lib/
 async function fetchServerSession() {
   const requestHeaders = await headers();
 
-  return withDbRetry(() =>
-    auth.api.getSession({
-      headers: requestHeaders,
-    })
-  );
+  try {
+    return await withDbRetry(() =>
+      auth.api.getSession({
+        headers: requestHeaders,
+      }),
+    );
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[auth] getServerSession failed:", error);
+    }
+    return null;
+  }
 }
 
 export const getServerSession = cache(fetchServerSession);

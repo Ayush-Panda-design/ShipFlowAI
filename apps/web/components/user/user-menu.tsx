@@ -15,7 +15,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
-import { signOut, useSession } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth-client";
+
+type UserMenuUser = {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
 
 function getInitials(name?: string | null, email?: string | null) {
   const source = name?.trim() || email?.trim() || "U";
@@ -28,12 +34,10 @@ function getInitials(name?: string | null, email?: string | null) {
   return source.slice(0, 2).toUpperCase();
 }
 
-export function UserMenu() {
+export function UserMenu({ user }: { user: UserMenuUser }) {
   const router = useRouter();
-  const { data: session } = useSession();
-  const user = session?.user;
 
-  if (!user) {
+  if (!user.email && !user.name) {
     return null;
   }
 

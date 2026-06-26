@@ -12,6 +12,7 @@ import {
 const authPrisma = getPrismaClient();
 
 export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET,
   baseURL: {
     allowedHosts: getAuthAllowedHosts(),
     protocol: getAuthProtocol(),

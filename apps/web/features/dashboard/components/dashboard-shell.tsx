@@ -13,9 +13,14 @@ import { usePathname } from "next/navigation";
 
 type DashboardShellProps = {
   children: React.ReactNode;
+  user: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
 };
 
-export function DashboardShell({ children }: DashboardShellProps) {
+export function DashboardShell({ children, user }: DashboardShellProps) {
   const pathname = usePathname();
   const currentRoute = getDashboardRoute(pathname);
 
@@ -36,7 +41,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
               </p>
             ) : null}
           </div>
-          <UserMenu />
+          <UserMenu user={user} />
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
       </SidebarInset>

@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import { handleAuthProxy } from "@/lib/auth-proxy";
 import { isSameOriginRequest, sameOriginForbiddenResponse } from "@/lib/same-origin";
 
-const SAME_ORIGIN_API_PREFIXES = ["/api/trpc", "/api/auth"] as const;
+const SAME_ORIGIN_API_PREFIXES = ["/api/trpc"] as const;
 
 function requiresSameOriginCheck(pathname: string) {
   return SAME_ORIGIN_API_PREFIXES.some(

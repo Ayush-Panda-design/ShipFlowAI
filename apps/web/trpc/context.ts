@@ -1,11 +1,9 @@
 import { headers } from "next/headers";
 
-import { auth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth-session";
 
 export async function createWebTrpcContext() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getServerSession();
 
   return { userId: session?.user?.id ?? null };
 }

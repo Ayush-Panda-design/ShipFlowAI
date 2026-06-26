@@ -7,5 +7,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/trpc/:path*", "/api/auth/:path*"],
+  matcher: ["/dashboard/:path*", "/api/trpc/:path*"],
 };
