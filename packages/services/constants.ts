@@ -26,6 +26,24 @@ export const AI_CREDIT_COSTS = {
   review: 3,
 } as const;
 
+/** Free-plan quota. High in dev for localhost testing; set to 10 before production polish. */
+export function isDevCreditsMode() {
+  return (
+    process.env.NODE_ENV !== "production" ||
+    process.env.INNGEST_DEV === "1" ||
+    process.env.SHIPFLOW_DEV_AI_CREDITS === "1"
+  );
+}
+
+export function getFreePlanAiCredits() {
+  return isDevCreditsMode() ? 9_999 : 10;
+}
+
+/** @deprecated use getFreePlanAiCredits() — evaluated at call time for correct env */
+export const FREE_PLAN_AI_CREDITS = getFreePlanAiCredits();
+
+export const FREE_PLAN_REPO_LIMIT = 2;
+
 export type AiCreditAction = keyof typeof AI_CREDIT_COSTS;
 
 export const IN_FLIGHT_FEATURE_STATUSES = [

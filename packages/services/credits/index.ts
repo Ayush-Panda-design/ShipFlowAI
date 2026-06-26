@@ -1,8 +1,19 @@
 import { prisma } from "@repo/database";
 
-import { AI_CREDIT_COSTS } from "../constants";
+import { AI_CREDIT_COSTS, getFreePlanAiCredits, isDevCreditsMode } from "../constants";
 
 export { AI_CREDIT_COSTS };
+
+async function topUpDevCreditsIfNeeded(workspaceId: string) {
+  if (!isDevCreditsMode()) {
+    return;
+  }
+
+  await prisma.workspace.updateMany({
+    where: { id: workspaceId, plan: "free" },
+    data: { aiCredits: getFreePlanAiCredits() },
+  });
+}
 
 export class InsufficientCreditsError extends Error {
   readonly code = "INSUFFICIENT_CREDITS" as const;
@@ -59,6 +70,12 @@ export async function resolveWorkspaceIdForInstallation(installationId: number) 
 }
 
 export async function assertHasCredits(workspaceId: string, cost: number) {
+  if (!workspaceId?.trim()) {
+    throw new Error("Workspace id is required to check credits");
+  }
+
+  await topUpDevCreditsIfNeeded(workspaceId);
+
   const workspace = await getWorkspaceCredits(workspaceId);
   if (!workspace) {
     throw new Error("Workspace not found");
@@ -76,6 +93,12 @@ export async function assertHasCredits(workspaceId: string, cost: number) {
 }
 
 export async function consumeCredits(workspaceId: string, cost: number) {
+  if (!workspaceId?.trim()) {
+    throw new Error("Workspace id is required to consume credits");
+  }
+
+  await topUpDevCreditsIfNeeded(workspaceId);
+
   const workspace = await getWorkspaceCredits(workspaceId);
   if (!workspace) {
     throw new Error("Workspace not found");
@@ -101,5 +124,29 @@ export async function consumeCredits(workspaceId: string, cost: number) {
       cost,
       latest?.aiCredits ?? 0,
     );
+  }
+}
+
+export type CreditConsumptionFailure =
+  | { code: "workspace_not_found" }
+  | { code: "insufficient_credits"; message: string };
+
+/** Returns a failure object for expected credit errors; rethrows unexpected errors. */
+export async function tryConsumeCredits(
+  workspaceId: string | null | undefined,
+  cost: number,
+): Promise<CreditConsumptionFailure | null> {
+  if (!workspaceId?.trim()) {
+    return { code: "workspace_not_found" };
+  }
+
+  try {
+    await consumeCredits(workspaceId, cost);
+    return null;
+  } catch (error) {
+    if (error instanceof InsufficientCreditsError) {
+      return { code: "insufficient_credits", message: error.message };
+    }
+    throw error;
   }
 }

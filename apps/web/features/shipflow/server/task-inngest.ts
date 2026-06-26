@@ -1,12 +1,13 @@
 import { inngest } from "@/features/inngest/client";
 import {
-  AI_CREDIT_COSTS,
-  consumeCredits,
   createTasks,
   getFeatureRequest,
-  resolveWorkspaceIdForFeature,
   updateFeatureStatus,
 } from "@repo/services";
+import {
+  AI_CREDIT_COSTS,
+  consumeFeatureCreditsForJob,
+} from "@/features/shipflow/server/feature-credits";
 import { generateTasksFromPrd } from "./ai";
 
 export const generateTasks = inngest.createFunction(
@@ -17,15 +18,21 @@ export const generateTasks = inngest.createFunction(
   async ({ event }) => {
     const { featureRequestId } = event.data as { featureRequestId: string };
     const feature = await getFeatureRequest(featureRequestId);
-    if (!feature?.prd) return { ok: false };
+    if (!feature?.prd) return { ok: false, error: "prd_not_found" };
 
-    const workspaceId = await resolveWorkspaceIdForFeature(featureRequestId);
-    if (!workspaceId) return { ok: false, error: "workspace_not_found" };
-
-    try {
-      await consumeCredits(workspaceId, AI_CREDIT_COSTS.tasks);
-    } catch {
-      return { ok: false, error: "insufficient_credits" };
+    const creditFailure = await consumeFeatureCreditsForJob(
+      featureRequestId,
+      AI_CREDIT_COSTS.tasks,
+    );
+    if (creditFailure) {
+      return {
+        ok: false,
+        error: creditFailure.code,
+        message:
+          creditFailure.code === "insufficient_credits"
+            ? creditFailure.message
+            : undefined,
+      };
     }
 
     await updateFeatureStatus(featureRequestId, "planning");

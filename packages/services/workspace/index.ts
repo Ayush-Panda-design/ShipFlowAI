@@ -1,5 +1,5 @@
 import { prisma } from "@repo/database";
-import { slugify } from "../constants";
+import { getFreePlanAiCredits, isDevCreditsMode, slugify } from "../constants";
 
 export async function listWorkspacesForUser(userId: string) {
   return prisma.workspace.findMany({
@@ -37,6 +37,7 @@ export async function createWorkspace(userId: string, name: string) {
     data: {
       name,
       slug,
+      aiCredits: getFreePlanAiCredits(),
       members: { create: { userId, role: "owner" } },
       subscription: { create: { plan: "free", status: "active" } },
     },
@@ -47,7 +48,16 @@ export async function createWorkspace(userId: string, name: string) {
 export async function ensureDefaultWorkspace(userId: string, userName: string) {
   const existing = await listWorkspacesForUser(userId);
   if (existing.length > 0) {
-    return existing[0]!;
+    const workspace = existing[0]!;
+
+    if (isDevCreditsMode() && workspace.plan === "free") {
+      return prisma.workspace.update({
+        where: { id: workspace.id },
+        data: { aiCredits: getFreePlanAiCredits() },
+      });
+    }
+
+    return workspace;
   }
 
   return createWorkspace(userId, `${userName.split(" ")[0] ?? "My"}'s Workspace`);

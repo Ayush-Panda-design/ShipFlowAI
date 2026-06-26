@@ -1,13 +1,14 @@
 import { inngest } from "@/features/inngest/client";
 import {
   addClarification,
-  AI_CREDIT_COSTS,
-  consumeCredits,
   getFeatureRequest,
-  resolveWorkspaceIdForFeature,
   updateFeatureStatus,
   upsertPrd,
 } from "@repo/services";
+import {
+  AI_CREDIT_COSTS,
+  consumeFeatureCreditsForJob,
+} from "@/features/shipflow/server/feature-credits";
 import { generateClarificationQuestions, generatePrdFromRequest } from "./ai";
 
 export const clarifyFeatureRequest = inngest.createFunction(
@@ -18,15 +19,21 @@ export const clarifyFeatureRequest = inngest.createFunction(
   async ({ event }) => {
     const { featureRequestId } = event.data as { featureRequestId: string };
     const feature = await getFeatureRequest(featureRequestId);
-    if (!feature) return { ok: false };
+    if (!feature) return { ok: false, error: "feature_not_found" };
 
-    const workspaceId = await resolveWorkspaceIdForFeature(featureRequestId);
-    if (!workspaceId) return { ok: false, error: "workspace_not_found" };
-
-    try {
-      await consumeCredits(workspaceId, AI_CREDIT_COSTS.clarify);
-    } catch {
-      return { ok: false, error: "insufficient_credits" };
+    const creditFailure = await consumeFeatureCreditsForJob(
+      featureRequestId,
+      AI_CREDIT_COSTS.clarify,
+    );
+    if (creditFailure) {
+      return {
+        ok: false,
+        error: creditFailure.code,
+        message:
+          creditFailure.code === "insufficient_credits"
+            ? creditFailure.message
+            : undefined,
+      };
     }
 
     await updateFeatureStatus(featureRequestId, "clarifying");
@@ -50,15 +57,21 @@ export const generatePrd = inngest.createFunction(
   async ({ event }) => {
     const { featureRequestId } = event.data as { featureRequestId: string };
     const feature = await getFeatureRequest(featureRequestId);
-    if (!feature) return { ok: false };
+    if (!feature) return { ok: false, error: "feature_not_found" };
 
-    const workspaceId = await resolveWorkspaceIdForFeature(featureRequestId);
-    if (!workspaceId) return { ok: false, error: "workspace_not_found" };
-
-    try {
-      await consumeCredits(workspaceId, AI_CREDIT_COSTS.prd);
-    } catch {
-      return { ok: false, error: "insufficient_credits" };
+    const creditFailure = await consumeFeatureCreditsForJob(
+      featureRequestId,
+      AI_CREDIT_COSTS.prd,
+    );
+    if (creditFailure) {
+      return {
+        ok: false,
+        error: creditFailure.code,
+        message:
+          creditFailure.code === "insufficient_credits"
+            ? creditFailure.message
+            : undefined,
+      };
     }
 
     await updateFeatureStatus(featureRequestId, "prd_generating");

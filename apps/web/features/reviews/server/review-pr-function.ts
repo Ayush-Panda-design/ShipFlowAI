@@ -1,9 +1,9 @@
 import { inngest, type GitHubPrReceivedEvent } from "@/features/inngest/client";
 import {
   AI_CREDIT_COSTS,
-  consumeCredits,
   resolveWorkspaceIdForFeature,
   resolveWorkspaceIdForInstallation,
+  tryConsumeCredits,
 } from "@repo/services";
 import {
   enrichReview,
@@ -87,11 +87,18 @@ export const reviewPullRequest = inngest.createFunction(
           ? await resolveWorkspaceIdForFeature(pullRequest.featureRequestId)
           : null) ?? (await resolveWorkspaceIdForInstallation(installationId));
 
-      if (!workspaceId) {
+      const failure = await tryConsumeCredits(
+        workspaceId,
+        AI_CREDIT_COSTS.review,
+      );
+
+      if (failure?.code === "workspace_not_found") {
         throw new Error("Workspace not found for review billing");
       }
 
-      await consumeCredits(workspaceId, AI_CREDIT_COSTS.review);
+      if (failure?.code === "insufficient_credits") {
+        throw new Error(failure.message);
+      }
     });
 
     await step.run("mark-processing", async () => {

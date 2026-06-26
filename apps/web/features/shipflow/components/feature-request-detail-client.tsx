@@ -65,7 +65,18 @@ export function FeatureRequestDetailClient({
 
   const credits = workspace?.aiCredits ?? 0;
   const inFlight = feature ? isInFlightFeatureStatus(feature.status) : false;
-  const aiDisabled = credits <= 0 || inFlight;
+
+  const creditHint = (cost: number) => {
+    if (inFlight) {
+      return "Wait for the current AI job to finish.";
+    }
+    if (credits < cost) {
+      return `Need ${cost} AI credits (you have ${credits}). Open Billing to upgrade.`;
+    }
+    return undefined;
+  };
+
+  const canAfford = (cost: number) => !inFlight && credits >= cost;
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading feature…</p>;
@@ -106,7 +117,8 @@ export function FeatureRequestDetailClient({
           <Button
             variant="outline"
             size="sm"
-            disabled={aiDisabled || clarifyMutation.isPending}
+            disabled={!canAfford(AI_CREDIT_COSTS.clarify) || clarifyMutation.isPending}
+            title={creditHint(AI_CREDIT_COSTS.clarify)}
             onClick={() => clarifyMutation.mutate({ featureRequestId: featureId })}
           >
             AI clarify ({AI_CREDIT_COSTS.clarify} cr)
@@ -114,7 +126,8 @@ export function FeatureRequestDetailClient({
           <Button
             variant="outline"
             size="sm"
-            disabled={aiDisabled || prdMutation.isPending}
+            disabled={!canAfford(AI_CREDIT_COSTS.prd) || prdMutation.isPending}
+            title={creditHint(AI_CREDIT_COSTS.prd)}
             onClick={() => prdMutation.mutate({ featureRequestId: featureId })}
           >
             Generate PRD ({AI_CREDIT_COSTS.prd} cr)
@@ -122,7 +135,8 @@ export function FeatureRequestDetailClient({
           <Button
             variant="outline"
             size="sm"
-            disabled={aiDisabled || tasksMutation.isPending}
+            disabled={!canAfford(AI_CREDIT_COSTS.tasks) || tasksMutation.isPending}
+            title={creditHint(AI_CREDIT_COSTS.tasks)}
             onClick={() => tasksMutation.mutate({ featureRequestId: featureId })}
           >
             Generate tasks ({AI_CREDIT_COSTS.tasks} cr)
@@ -130,10 +144,11 @@ export function FeatureRequestDetailClient({
         </div>
       </div>
 
-      {credits <= 0 ? (
+      {credits < AI_CREDIT_COSTS.review ? (
         <Card className="border-amber-500/40 bg-amber-500/5">
           <CardContent className="pt-6 text-sm text-muted-foreground">
-            You have no AI credits left.{" "}
+            You need at least {AI_CREDIT_COSTS.review} AI credits to run a review
+            (you have {credits}).{" "}
             <Link href="/dashboard/billing" className="underline">
               Upgrade on Billing
             </Link>{" "}

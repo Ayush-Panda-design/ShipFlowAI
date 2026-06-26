@@ -2,13 +2,13 @@ import { z } from "zod";
 import {
   AI_CREDIT_COSTS,
   assertHasCredits,
-  InsufficientCreditsError,
   resolveWorkspaceIdForInstallation,
   sendReviewJob,
 } from "@repo/services";
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@repo/database";
 
+import { throwTrpcCreditError } from "../../credit-errors";
 import { protectedProcedure, router } from "../../trpc";
 
 const STALE_PROCESSING_MS = 5 * 60 * 1000;
@@ -67,10 +67,7 @@ export const reviewRouter = router({
       try {
         await assertHasCredits(workspaceId, AI_CREDIT_COSTS.review);
       } catch (error) {
-        if (error instanceof InsufficientCreditsError) {
-          throw new TRPCError({ code: "FORBIDDEN", message: error.message });
-        }
-        throw error;
+        throwTrpcCreditError(error);
       }
 
       await prisma.pullRequest.update({

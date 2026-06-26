@@ -11,6 +11,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@repo/database";
 
+import { throwTrpcCreditError } from "../../credit-errors";
 import { protectedProcedure, router } from "../../trpc";
 
 async function assertFeatureAccess(featureRequestId: string, userId: string) {
@@ -42,11 +43,7 @@ async function requireCreditsForFeature(featureRequestId: string, cost: number) 
   try {
     await assertHasCredits(workspaceId, cost);
   } catch (error) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message:
-        error instanceof Error ? error.message : "Insufficient AI credits",
-    });
+    throwTrpcCreditError(error);
   }
 }
 
