@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  AI_CREDIT_COSTS,
   assertHasCredits,
   getFeatureRequest,
   resolveWorkspaceIdForFeature,
@@ -8,6 +7,7 @@ import {
   sendPrdJob,
   sendTasksJob,
 } from "@repo/services";
+import { AI_CREDIT_COSTS } from "@repo/services/constants";
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@repo/database";
 

@@ -8,8 +8,14 @@ import {
 } from "@repo/services";
 import {
   chargeFeatureCreditsForJob,
+  type FeatureJobCreditError,
 } from "@/features/shipflow/server/feature-credits";
+import { shipflowJobFailure } from "@/features/shipflow/server/job-results";
 import { generateClarificationQuestions, generatePrdFromRequest } from "./ai";
+
+function returnCreditError(creditError: FeatureJobCreditError) {
+  return shipflowJobFailure(creditError.error, creditError.message);
+}
 
 export const clarifyFeatureRequest = inngest.createFunction(
   {
@@ -19,13 +25,15 @@ export const clarifyFeatureRequest = inngest.createFunction(
   async ({ event }) => {
     const { featureRequestId } = event.data as { featureRequestId: string };
     const feature = await getFeatureRequest(featureRequestId);
-    if (!feature) return { ok: false, error: "feature_not_found" };
+    if (!feature) {
+      return shipflowJobFailure("feature_not_found", "Feature request not found.");
+    }
 
     const creditError = await chargeFeatureCreditsForJob(
       feature.project.workspaceId,
       AI_CREDIT_COSTS.clarify,
     );
-    if (creditError) return creditError;
+    if (creditError) return returnCreditError(creditError);
 
     await updateFeatureStatus(featureRequestId, "clarifying");
 
@@ -48,13 +56,15 @@ export const generatePrd = inngest.createFunction(
   async ({ event }) => {
     const { featureRequestId } = event.data as { featureRequestId: string };
     const feature = await getFeatureRequest(featureRequestId);
-    if (!feature) return { ok: false, error: "feature_not_found" };
+    if (!feature) {
+      return shipflowJobFailure("feature_not_found", "Feature request not found.");
+    }
 
     const creditError = await chargeFeatureCreditsForJob(
       feature.project.workspaceId,
       AI_CREDIT_COSTS.prd,
     );
-    if (creditError) return creditError;
+    if (creditError) return returnCreditError(creditError);
 
     await updateFeatureStatus(featureRequestId, "prd_generating");
 

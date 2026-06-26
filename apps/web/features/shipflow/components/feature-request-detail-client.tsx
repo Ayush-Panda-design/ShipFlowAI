@@ -13,6 +13,10 @@ import {
   ReleaseApprovalPanel,
 } from "@/features/shipflow/components/release-approval-panel";
 import { WorkflowStatusCard } from "@/features/shipflow/components/workflow-status-card";
+import {
+  getCreditHint,
+  getLowCreditsBannerMessage,
+} from "@/features/shipflow/lib/credit-hints";
 import { AI_CREDIT_COSTS, isInFlightFeatureStatus } from "@repo/services/constants";
 import { trpc } from "@/trpc/client";
 
@@ -84,18 +88,14 @@ export function FeatureRequestDetailClient({
   const inFlight = feature ? isInFlightFeatureStatus(feature.status) : false;
   const billingHref = "/dashboard/billing";
 
-  const creditHint = (cost: number) => {
-    if (inFlight) {
-      return "Wait for the current AI job to finish.";
-    }
-    if (credits < cost) {
-      return `Need ${cost} AI credits (you have ${credits}). Go to Billing (${billingHref}) to upgrade.`;
-    }
-    return `Uses ${cost} AI credit${cost === 1 ? "" : "s"}.`;
-  };
+  const creditHint = (cost: number) =>
+    getCreditHint({ cost, credits, inFlight, billingHref });
 
   const canAfford = (cost: number) => !inFlight && credits >= cost;
-  const showLowCreditsBanner = credits < AI_CREDIT_COSTS.review;
+  const lowCreditsBanner = getLowCreditsBannerMessage(
+    credits,
+    (feature?.pullRequests.length ?? 0) > 0,
+  );
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading feature…</p>;
@@ -187,20 +187,10 @@ export function FeatureRequestDetailClient({
         </div>
       </div>
 
-      {showLowCreditsBanner ? (
+      {lowCreditsBanner.show ? (
         <Card className="border-amber-500/40 bg-amber-500/5">
           <CardContent className="pt-6 text-sm text-muted-foreground">
-            {credits < AI_CREDIT_COSTS.clarify ? (
-              <>
-                You have no AI credits left. AI actions are disabled until you
-                upgrade.{" "}
-              </>
-            ) : (
-              <>
-                You need at least {AI_CREDIT_COSTS.review} AI credits to run a
-                review (you have {credits}).{" "}
-              </>
-            )}
+            {lowCreditsBanner.message}{" "}
             <Link href={billingHref} className="font-medium underline">
               Open Billing to get more credits
             </Link>

@@ -7,7 +7,9 @@ import {
 } from "@repo/services";
 import {
   chargeFeatureCreditsForJob,
+  type FeatureJobCreditError,
 } from "@/features/shipflow/server/feature-credits";
+import { shipflowJobFailure } from "@/features/shipflow/server/job-results";
 import { generateTasksFromPrd } from "./ai";
 
 export const generateTasks = inngest.createFunction(
@@ -18,14 +20,20 @@ export const generateTasks = inngest.createFunction(
   async ({ event }) => {
     const { featureRequestId } = event.data as { featureRequestId: string };
     const feature = await getFeatureRequest(featureRequestId);
-    if (!feature) return { ok: false, error: "feature_not_found" };
-    if (!feature.prd) return { ok: false, error: "prd_not_found" };
+    if (!feature) {
+      return shipflowJobFailure("feature_not_found", "Feature request not found.");
+    }
+    if (!feature.prd) {
+      return shipflowJobFailure("prd_not_found", "PRD not found for this feature.");
+    }
 
     const creditError = await chargeFeatureCreditsForJob(
       feature.project.workspaceId,
       AI_CREDIT_COSTS.tasks,
     );
-    if (creditError) return creditError;
+    if (creditError) {
+      return shipflowJobFailure(creditError.error, creditError.message);
+    }
 
     await updateFeatureStatus(featureRequestId, "planning");
 

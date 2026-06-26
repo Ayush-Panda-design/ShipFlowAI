@@ -23,8 +23,14 @@ const openApiDocument = generateOpenApiDocument(serverRouter, {
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || env.CORS_ALLOWED_ORIGINS.includes(origin)) {
-        callback(null, origin ?? env.CORS_ALLOWED_ORIGINS[0]);
+      if (!origin) {
+        // Server-to-server / curl — no permissive CORS header.
+        callback(null, false);
+        return;
+      }
+
+      if (env.CORS_ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, origin);
         return;
       }
 

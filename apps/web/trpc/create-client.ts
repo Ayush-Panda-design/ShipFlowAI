@@ -5,6 +5,7 @@ function getTrpcUrl() {
     return process.env.NEXT_PUBLIC_API_URL;
   }
 
+  // Default: same-origin handler at /api/trpc (no cross-origin CORS).
   if (typeof window !== "undefined") {
     return `${window.location.origin}/api/trpc`;
   }
