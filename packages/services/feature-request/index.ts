@@ -20,7 +20,19 @@ export async function getFeatureRequest(id: string) {
       prd: true,
       tasks: { orderBy: [{ status: "asc" }, { order: "asc" }] },
       pullRequests: { orderBy: { updatedAt: "desc" } },
-      aiReviews: { orderBy: { createdAt: "desc" }, take: 10 },
+      aiReviews: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: {
+          pullRequest: {
+            select: {
+              repoFullName: true,
+              prNumber: true,
+              title: true,
+            },
+          },
+        },
+      },
       approvals: { orderBy: { createdAt: "desc" }, include: { reviewer: { select: { name: true, email: true } } } },
     },
   });

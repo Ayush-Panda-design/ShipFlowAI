@@ -18,11 +18,13 @@ export type PullRequestWebhookPayload = {
   pull_request: {
     number: number;
     title: string;
+    body?: string | null;
     user: {
       login: string;
     } | null;
     head: {
       sha: string;
+      ref: string;
     };
     base: {
       ref: string;

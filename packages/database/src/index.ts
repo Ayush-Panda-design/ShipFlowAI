@@ -1,8 +1,35 @@
+import { config } from "dotenv";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
 import { PrismaClient } from "./generated/prisma/client";
+
+function loadDatabaseEnv() {
+  if (process.env.DATABASE_URL) {
+    return;
+  }
+
+  const candidates = [
+    resolve(process.cwd(), "apps/web/.env"),
+    resolve(process.cwd(), "../../apps/web/.env"),
+    resolve(process.cwd(), ".env"),
+  ];
+
+  for (const path of candidates) {
+    if (existsSync(path)) {
+      config({ path });
+      if (process.env.DATABASE_URL) {
+        return;
+      }
+    }
+  }
+}
+
+loadDatabaseEnv();
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -111,6 +138,8 @@ function getPrismaClient() {
 
   return client;
 }
+
+export { getPrismaClient };
 
 export async function invalidateDbConnection() {
   const client = globalForPrisma.prisma;

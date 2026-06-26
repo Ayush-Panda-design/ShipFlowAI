@@ -137,6 +137,7 @@ export default async function PullRequestsPage() {
             <TableHead>Title</TableHead>
             <TableHead>Author</TableHead>
             <TableHead>Branch</TableHead>
+            <TableHead>Feature</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
             <TableHead className="text-right">Updated</TableHead>
@@ -154,6 +155,18 @@ export default async function PullRequestsPage() {
               </TableCell>
               <TableCell>@{pullRequest.authorLogin}</TableCell>
               <TableCell>{pullRequest.baseBranch}</TableCell>
+              <TableCell className="max-w-[10rem] truncate text-xs">
+                {pullRequest.featureRequest ? (
+                  <Link
+                    href={`${DASHBOARD_BASE_PATH}/feature-requests/${pullRequest.featureRequest.id}`}
+                    className="hover:underline"
+                  >
+                    {pullRequest.featureRequest.title}
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
               <TableCell>
                 <Badge
                   variant="outline"

@@ -5,12 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FeatureStatusBadge } from "@/features/shipflow/components/feature-status-badge";
 import {
-  approveReleaseAction,
   triggerClarificationAction,
   triggerPrdGenerationAction,
   triggerTaskGenerationAction,
 } from "@/lib/actions/shipflow";
 import { getFeatureRequest } from "@repo/services";
+
+import { AiReviewPanel } from "@/features/reviews/components/ai-review-panel";
+import {
+  ApprovalHistory,
+  ReleaseApprovalPanel,
+} from "@/features/shipflow/components/release-approval-panel";
+import { WorkflowStatusCard } from "@/features/shipflow/components/workflow-status-card";
 
 export default async function FeatureRequestDetailPage({
   params,
@@ -59,18 +65,10 @@ export default async function FeatureRequestDetailPage({
           >
             <Button type="submit" variant="outline" size="sm">Generate tasks</Button>
           </form>
-          {feature.status === "awaiting_approval" && (
-            <form
-              action={async () => {
-                "use server";
-                await approveReleaseAction(id);
-              }}
-            >
-              <Button type="submit" size="sm">Approve & ship</Button>
-            </form>
-          )}
         </div>
       </div>
+
+      <WorkflowStatusCard status={feature.status} />
 
       <Card>
         <CardHeader><CardTitle className="text-base">Request</CardTitle></CardHeader>
@@ -122,13 +120,27 @@ export default async function FeatureRequestDetailPage({
           <CardContent className="space-y-2">
             {feature.pullRequests.map((pr) => (
               <div key={pr.id} className="flex justify-between text-sm">
-                <span>{pr.repoFullName} #{pr.prNumber}</span>
-                <span>{pr.status}</span>
+                <span>{pr.repoFullName} #{pr.prNumber} — {pr.title}</span>
+                <span className="capitalize">{pr.status}</span>
               </div>
             ))}
+            <p className="pt-2 text-xs text-muted-foreground">
+              Link PRs automatically with branch names like{" "}
+              <code>feature/&lt;feature-id&gt;</code> or PR title{" "}
+              <code>[shipflow:&lt;feature-id&gt;]</code>.
+            </p>
           </CardContent>
         </Card>
       )}
+
+      <AiReviewPanel reviews={feature.aiReviews} />
+
+      <ReleaseApprovalPanel
+        featureRequestId={id}
+        status={feature.status}
+      />
+
+      <ApprovalHistory approvals={feature.approvals} />
     </div>
   );
 }

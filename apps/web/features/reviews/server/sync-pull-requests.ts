@@ -1,6 +1,7 @@
 import { getGitHubApp } from "@/features/github/utils/github-app";
 import { queueReviewForPullRequest } from "@/features/reviews/server/trigger-review";
 import { isReviewPipelineConfigured } from "@/features/reviews/server/review-config";
+import { resolveFeatureLink } from "@/features/reviews/server/resolve-feature-link";
 import { prisma } from "@/lib/db";
 
 export async function syncPullRequestsForInstallation(installationId: number) {
@@ -44,6 +45,25 @@ export async function syncPullRequestsForInstallation(installationId: number) {
         canQueueReviews &&
         (!existing || existing.status === "pending" || existing.status === "failed");
 
+      const link = await resolveFeatureLink({
+        repoFullName: repository.full_name,
+        branch: pullRequest.head.ref,
+        title: pullRequest.title,
+        body: pullRequest.body,
+      });
+
+      const linkData = {
+        featureRequestId: link.featureRequestId,
+        projectId: link.projectId,
+        repositoryId: link.repositoryId,
+      };
+
+      const linkPatch = {
+        ...(link.featureRequestId ? { featureRequestId: link.featureRequestId } : {}),
+        ...(link.projectId ? { projectId: link.projectId } : {}),
+        ...(link.repositoryId ? { repositoryId: link.repositoryId } : {}),
+      };
+
       await prisma.pullRequest.upsert({
         where: {
           repoFullName_prNumber: {
@@ -60,6 +80,7 @@ export async function syncPullRequestsForInstallation(installationId: number) {
           headSha: pullRequest.head.sha,
           baseBranch: pullRequest.base.ref,
           status: "pending",
+          ...linkData,
         },
         update: {
           installationId,
@@ -67,6 +88,7 @@ export async function syncPullRequestsForInstallation(installationId: number) {
           authorLogin: pullRequest.user?.login ?? "unknown",
           headSha: pullRequest.head.sha,
           baseBranch: pullRequest.base.ref,
+          ...linkPatch,
         },
       });
 

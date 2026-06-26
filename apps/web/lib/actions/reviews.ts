@@ -86,6 +86,7 @@ export async function runPullRequestReview(
   });
 
   revalidatePath(`${DASHBOARD_BASE_PATH}/pull-requests`);
+  revalidatePath(`${DASHBOARD_BASE_PATH}/feature-requests`);
 
   return {
     ok: true,

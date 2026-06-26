@@ -19,7 +19,7 @@ async function fetchServerSession() {
 export const getServerSession = cache(fetchServerSession);
 
 export async function requireSession(callbackPath?: string) {
-  let session;
+  let session = null;
 
   try {
     session = await getServerSession();
@@ -27,11 +27,6 @@ export async function requireSession(callbackPath?: string) {
     if (process.env.NODE_ENV === "development") {
       console.error("[auth] requireSession failed:", error);
     }
-
-    const destination = callbackPath ?? DEFAULT_POST_AUTH_PATH;
-    redirect(
-      `${SIGN_IN_PATH}?callbackUrl=${encodeURIComponent(destination)}`
-    );
   }
 
   if (!session) {
@@ -45,7 +40,17 @@ export async function requireSession(callbackPath?: string) {
 }
 
 export async function redirectIfAuthenticated(callbackUrl?: string | null) {
-  const session = await getServerSession();
+  let session = null;
+
+  try {
+    session = await getServerSession();
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[auth] redirectIfAuthenticated failed:", error);
+    }
+    // Allow sign-in page when the database is temporarily unavailable.
+    return;
+  }
 
   if (session) {
     redirect(resolveCallbackUrl(callbackUrl, DEFAULT_POST_AUTH_PATH));
