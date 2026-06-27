@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GitPullRequest, Bot, AlertTriangle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,93 @@ import { isInFlightPrStatus } from "@repo/services/constants";
 import { trpc } from "@/trpc/client";
 import { cn } from "@/lib/utils";
 
+function formatElapsed(updatedAt: string) {
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(updatedAt).getTime()) / 1000));
+
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return remainder > 0 ? `${minutes}m ${remainder}s` : `${minutes}m`;
+}
+
+function shortRepoName(repoFullName: string) {
+  const parts = repoFullName.split("/");
+  return parts.length > 1 ? parts[parts.length - 1]! : repoFullName;
+}
+
+function compactUpdatedAt(updatedAt: string) {
+  const date = new Date(updatedAt);
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function ReviewStatusCell({
+  status,
+  reviewComment,
+  updatedAt,
+}: {
+  status: string;
+  reviewComment: string | null;
+  updatedAt: string;
+}) {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!isInFlightPrStatus(status)) {
+      return;
+    }
+
+    const interval = window.setInterval(() => setTick((value) => value + 1), 1000);
+    return () => window.clearInterval(interval);
+  }, [status]);
+
+  const isFailed = status === "failed";
+  const isProcessing = isInFlightPrStatus(status);
+  const progressHint =
+    reviewComment?.startsWith("Review in progress:")
+      ? reviewComment.replace("Review in progress:", "").trim()
+      : null;
+  const failureMessage =
+    isFailed && reviewComment
+      ? reviewComment.replace(/^Review failed:\s*/i, "")
+      : null;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Badge
+        variant="outline"
+        className={cn(
+          "w-fit font-medium capitalize",
+          statusStyles[status] ??
+            "border-border bg-muted text-muted-foreground",
+        )}
+      >
+        {status}
+      </Badge>
+      {isProcessing ? (
+        <span className="text-xs text-sky-600 dark:text-sky-400">
+          {progressHint ?? "Queued"} · {formatElapsed(updatedAt)}
+        </span>
+      ) : null}
+      {failureMessage ? (
+        <span
+          className="max-w-[14rem] truncate text-xs text-destructive"
+          title={failureMessage}
+        >
+          {failureMessage}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 const statusStyles: Record<string, string> = {
   pending:
     "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
@@ -67,7 +154,7 @@ export function PullRequestsTableClient({
       const hasInFlight = pullRequests.some((pullRequest) =>
         isInFlightPrStatus(pullRequest.status),
       );
-      return hasInFlight ? 3000 : false;
+      return hasInFlight ? 2000 : false;
     },
   });
 
@@ -181,30 +268,37 @@ export function PullRequestsTableClient({
       {filteredPullRequests.length === 0 ? (
         <p className="text-sm text-muted-foreground">No pull requests match your filters.</p>
       ) : (
-        <div className="max-h-[min(70vh,720px)] overflow-auto rounded-lg border">
-          <Table>
+        <div className="max-h-[min(70vh,720px)] overflow-y-auto rounded-lg border">
+          <Table className="table-fixed w-full">
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
-                <TableHead>Repository</TableHead>
-                <TableHead>PR</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Author</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Feature</TableHead>
-                <TableHead>Confidence</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-                <TableHead className="text-right">Updated</TableHead>
+                <TableHead className="w-14">PR</TableHead>
+                <TableHead>Change</TableHead>
+                <TableHead className="w-28">Review</TableHead>
+                <TableHead className="w-28 text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPullRequests.map((pullRequest) => (
+              {filteredPullRequests.map((pullRequest) => {
+                const review = pullRequest.aiReviews[0];
+                const confidenceScore = review
+                  ? review.confidenceScore ??
+                    computeConfidenceScore(
+                      {
+                        prdAlignment: review.prdAlignment ?? "",
+                        findings: [],
+                      },
+                      {
+                        blockingCount: review.blockingCount,
+                        nonBlockingCount: review.nonBlockingCount,
+                      },
+                    )
+                  : null;
+
+                return (
                 <TableRow key={pullRequest.id}>
-                  <TableCell className="font-medium">
-                    {pullRequest.repoFullName}
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center gap-1">
+                  <TableCell className="align-top">
+                    <span className="inline-flex items-center gap-1 text-sm font-medium">
                       #{pullRequest.prNumber}
                       {pullRequest.source === "ai" ? (
                         <span title="AI-generated">
@@ -213,95 +307,87 @@ export function PullRequestsTableClient({
                       ) : null}
                     </span>
                   </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {pullRequest.title}
-                  </TableCell>
-                  <TableCell>@{pullRequest.authorLogin}</TableCell>
-                  <TableCell className="text-xs">
-                    {pullRequest.filesChanged != null ? (
-                      <span
-                        className={cn(
-                          pullRequest.sizeWarning === "critical" && "text-destructive",
-                          pullRequest.sizeWarning === "warn" && "text-amber-600",
-                        )}
-                        title={
-                          pullRequest.sizeWarning
-                            ? "Large PR — consider splitting before review"
-                            : undefined
-                        }
+                  <TableCell className="min-w-0 align-top">
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <p
+                        className="truncate text-sm font-medium"
+                        title={pullRequest.title}
                       >
-                        {pullRequest.sizeWarning ? (
-                          <AlertTriangle className="mr-1 inline size-3" />
+                        {pullRequest.title}
+                      </p>
+                      <p
+                        className="truncate text-xs text-muted-foreground"
+                        title={`${pullRequest.repoFullName} · @${pullRequest.authorLogin}`}
+                      >
+                        {shortRepoName(pullRequest.repoFullName)} · @{pullRequest.authorLogin}
+                        {pullRequest.filesChanged != null ? (
+                          <>
+                            {" · "}
+                            <span
+                              className={cn(
+                                pullRequest.sizeWarning === "critical" && "text-destructive",
+                                pullRequest.sizeWarning === "warn" && "text-amber-600",
+                              )}
+                            >
+                              {pullRequest.sizeWarning ? (
+                                <AlertTriangle className="mr-0.5 inline size-3" />
+                              ) : null}
+                              {pullRequest.filesChanged}f / {pullRequest.linesChanged ?? 0}L
+                            </span>
+                          </>
                         ) : null}
-                        {pullRequest.filesChanged} files · {pullRequest.linesChanged ?? 0} lines
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="max-w-[10rem] truncate text-xs">
-                    {pullRequest.featureRequest ? (
-                      <Link
-                        href={`${DASHBOARD_BASE_PATH}/feature-requests/${pullRequest.featureRequest.id}`}
-                        className="hover:underline"
-                      >
-                        {pullRequest.featureRequest.title}
-                      </Link>
-                    ) : (
-                      <span className="text-muted-foreground">Unlinked</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {(() => {
-                      const review = pullRequest.aiReviews[0];
-                      if (!review) {
-                        return (
-                          <span className="text-muted-foreground">No review</span>
-                        );
-                      }
-                      const score =
-                        review.confidenceScore ??
-                        computeConfidenceScore(
-                          {
-                            prdAlignment: review.prdAlignment ?? "",
-                            findings: [],
-                          },
-                          {
-                            blockingCount: review.blockingCount,
-                            nonBlockingCount: review.nonBlockingCount,
-                          },
-                        );
-                      return (
-                        <span title={confidenceLabel(score)}>{score}%</span>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "font-medium capitalize",
-                        statusStyles[pullRequest.status] ??
-                          "border-border bg-muted text-muted-foreground",
+                      </p>
+                      {pullRequest.featureRequest ? (
+                        <Link
+                          href={`${DASHBOARD_BASE_PATH}/feature-requests/${pullRequest.featureRequest.id}`}
+                          className="truncate text-xs text-primary hover:underline"
+                          title={pullRequest.featureRequest.title}
+                        >
+                          {pullRequest.featureRequest.title}
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Unlinked</span>
                       )}
-                    >
-                      {pullRequest.status}
-                    </Badge>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <RunReviewButton
-                      pullRequestId={pullRequest.id}
-                      disabled={!reviewConfigured}
-                      label={
-                        pullRequest.status === "failed" ? "Retry review" : "Run review"
-                      }
-                    />
+                  <TableCell className="align-top">
+                    <div className="flex flex-col gap-1">
+                      <ReviewStatusCell
+                        status={pullRequest.status}
+                        reviewComment={pullRequest.reviewComment}
+                        updatedAt={pullRequest.updatedAt}
+                      />
+                      {confidenceScore != null ? (
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title={confidenceLabel(confidenceScore)}
+                        >
+                          {confidenceScore}% confidence
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No review yet</span>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground text-xs">
-                    {new Date(pullRequest.updatedAt).toLocaleString()}
+                  <TableCell className="align-top text-right">
+                    <div className="flex flex-col items-end gap-1">
+                      <RunReviewButton
+                        pullRequestId={pullRequest.id}
+                        status={pullRequest.status}
+                        updatedAt={pullRequest.updatedAt}
+                        disabled={!reviewConfigured}
+                      />
+                      <span
+                        className="text-[11px] text-muted-foreground"
+                        title={new Date(pullRequest.updatedAt).toLocaleString()}
+                      >
+                        {compactUpdatedAt(pullRequest.updatedAt)}
+                      </span>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              );
+              })}
             </TableBody>
           </Table>
         </div>

@@ -8,14 +8,12 @@ import {
   resolveWorkspaceIdForInstallation,
   sendReviewJob,
 } from "@repo/services";
-import { isInFlightPrStatus } from "@repo/services/constants";
+import { isInFlightPrStatus, getStaleProcessingMs } from "@repo/services/constants";
 import { TRPCError } from "@trpc/server";
 import { prisma } from "@repo/database";
 
 import { throwTrpcCreditError } from "../../credit-errors";
 import { protectedProcedure, router } from "../../trpc";
-
-const STALE_PROCESSING_MS = 5 * 60 * 1000;
 
 export const reviewRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -219,7 +217,7 @@ export const reviewRouter = router({
 
       if (pullRequest.status === "processing") {
         const elapsedMs = Date.now() - pullRequest.updatedAt.getTime();
-        if (elapsedMs < STALE_PROCESSING_MS) {
+        if (elapsedMs < getStaleProcessingMs()) {
           throw new TRPCError({
             code: "CONFLICT",
             message: "Review already in progress.",

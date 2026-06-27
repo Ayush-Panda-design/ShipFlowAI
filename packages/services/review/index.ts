@@ -5,7 +5,24 @@ import type { ReviewFindingInput } from "../review-rules";
 export async function listPullRequestsForInstallation(installationId: number) {
   return prisma.pullRequest.findMany({
     where: { installationId },
-    include: {
+    select: {
+      id: true,
+      repoFullName: true,
+      prNumber: true,
+      title: true,
+      authorLogin: true,
+      status: true,
+      source: true,
+      headSha: true,
+      baseBranch: true,
+      installationId: true,
+      reviewComment: true,
+      filesChanged: true,
+      linesChanged: true,
+      sizeWarning: true,
+      createdAt: true,
+      updatedAt: true,
+      reviewedAt: true,
       featureRequest: { select: { id: true, title: true, status: true } },
       aiReviews: {
         orderBy: { createdAt: "desc" },

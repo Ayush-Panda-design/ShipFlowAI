@@ -18,8 +18,7 @@ import {
   InsufficientCreditsError,
   resolveWorkspaceIdForInstallation,
 } from "@repo/services";
-
-const STALE_PROCESSING_MS = 5 * 60 * 1000;
+import { getStaleProcessingMs } from "@repo/services/constants";
 
 export type ReviewActionResult = {
   ok: boolean;
@@ -66,7 +65,7 @@ export async function runPullRequestReview(
 
   if (pullRequest.status === "processing") {
     const elapsedMs = Date.now() - pullRequest.updatedAt.getTime();
-    if (elapsedMs < STALE_PROCESSING_MS) {
+    if (elapsedMs < getStaleProcessingMs()) {
       return {
         ok: false,
         message:

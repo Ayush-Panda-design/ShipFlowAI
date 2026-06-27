@@ -69,6 +69,11 @@ export function isInFlightPrStatus(status: string) {
   return (IN_FLIGHT_PR_STATUSES as readonly string[]).includes(status);
 }
 
+/** How long before a stuck "processing" PR can be re-queued */
+export function getStaleProcessingMs() {
+  return isDevCreditsMode() ? 2 * 60 * 1000 : 3 * 60 * 1000;
+}
+
 /** Max non-blocking findings posted per review (blocking always shown) */
 export const REVIEW_NON_BLOCKING_BUDGET = 8;
 
