@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DashboardListFilters,
+  filterBySearch,
+} from "@/features/dashboard/components/dashboard-list-filters";
 import { ProjectPicker } from "@/features/dashboard/components/project-picker";
+import { FEATURE_STATUS_LABELS } from "@/features/dashboard/lib/routes";
 import { FeatureStatusBadge } from "@/features/shipflow/components/feature-status-badge";
 import { trpc } from "@/trpc/client";
 
@@ -19,6 +25,9 @@ export function FeatureRequestsPageClient({
   projectId,
   projects,
 }: FeatureRequestsPageClientProps) {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const utils = trpc.useUtils();
   const { data: features = [], isLoading } = trpc.featureRequest.list.useQuery({
     projectId,
@@ -33,6 +42,23 @@ export function FeatureRequestsPageClient({
     onError: (error) => toast.error(error.message),
   });
 
+  const statusOptions = useMemo(
+    () => [...new Set(features.map((feature) => feature.status))].sort(),
+    [features],
+  );
+
+  const filteredFeatures = useMemo(() => {
+    let items = filterBySearch(features, search, (feature) =>
+      [feature.title, feature.description, feature.status, feature.source].join(" "),
+    );
+
+    if (statusFilter !== "all") {
+      items = items.filter((feature) => feature.status === statusFilter);
+    }
+
+    return items;
+  }, [features, search, statusFilter]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -45,11 +71,11 @@ export function FeatureRequestsPageClient({
         <ProjectPicker projects={projects} activeProjectId={projectId} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">New feature request</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <details className="rounded-lg border bg-card">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+          + New feature request
+        </summary>
+        <CardContent className="border-t px-4 pb-4 pt-3">
           <form
             className="grid gap-3"
             onSubmit={(event) => {
@@ -108,17 +134,40 @@ export function FeatureRequestsPageClient({
             </Button>
           </form>
         </CardContent>
-      </Card>
+      </details>
 
-      <div className="grid gap-3">
+      <DashboardListFilters
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search title, description, status…"
+        resultCount={filteredFeatures.length}
+        totalCount={features.length}
+      >
+        <select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+          className="h-9 rounded-md border bg-background px-3 text-sm"
+        >
+          <option value="all">All statuses</option>
+          {statusOptions.map((status) => (
+            <option key={status} value={status}>
+              {FEATURE_STATUS_LABELS[status] ?? status}
+            </option>
+          ))}
+        </select>
+      </DashboardListFilters>
+
+      <div className="grid max-h-[min(70vh,720px)] gap-3 overflow-auto pr-1">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading features…</p>
-        ) : features.length === 0 ? (
+        ) : filteredFeatures.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No feature requests in this project yet.
+            {features.length === 0
+              ? "No feature requests in this project yet."
+              : "No features match your filters."}
           </p>
         ) : (
-          features.map((feature) => (
+          filteredFeatures.map((feature) => (
             <Link
               key={feature.id}
               href={`/dashboard/feature-requests/${feature.id}`}
@@ -131,7 +180,7 @@ export function FeatureRequestsPageClient({
                       {feature.description}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
                     <FeatureStatusBadge status={feature.status} />
                     <span>{feature._count.tasks} tasks</span>
                     {feature.prd && <span>PRD</span>}
