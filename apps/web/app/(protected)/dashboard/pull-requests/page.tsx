@@ -35,6 +35,7 @@ import { syncPullRequestsForInstallation } from "@/features/reviews/server/sync-
 import { requireSession } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
 import { GitPullRequest } from "lucide-react";
+import { confidenceLabel, computeConfidenceScore } from "@/features/reviews/types/structured-review";
 
 const statusStyles: Record<string, string> = {
   pending:
@@ -138,6 +139,7 @@ export default async function PullRequestsPage() {
             <TableHead>Author</TableHead>
             <TableHead>Branch</TableHead>
             <TableHead>Feature</TableHead>
+            <TableHead>Confidence</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
             <TableHead className="text-right">Updated</TableHead>
@@ -164,8 +166,33 @@ export default async function PullRequestsPage() {
                     {pullRequest.featureRequest.title}
                   </Link>
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <span className="text-muted-foreground" title="Link via branch feature/&lt;id&gt; or PR title [shipflow:&lt;id&gt;]">
+                    Unlinked
+                  </span>
                 )}
+              </TableCell>
+              <TableCell className="text-xs">
+                {(() => {
+                  const review = pullRequest.aiReviews[0];
+                  if (!review) {
+                    return (
+                      <span className="text-muted-foreground">No review</span>
+                    );
+                  }
+                  const score = computeConfidenceScore(
+                    {
+                      prdAlignment: review.prdAlignment ?? "",
+                      findings: [],
+                    },
+                    {
+                      blockingCount: review.blockingCount,
+                      nonBlockingCount: review.nonBlockingCount,
+                    },
+                  );
+                  return (
+                    <span title={confidenceLabel(score)}>{score}%</span>
+                  );
+                })()}
               </TableCell>
               <TableCell>
                 <Badge

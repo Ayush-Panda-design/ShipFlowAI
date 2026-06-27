@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
+import { confidenceLabel } from "@/features/reviews/types/structured-review";
 import { getInstallationForUser } from "@/features/github/server/installation";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
 import { requireSession } from "@/lib/auth-session";
@@ -80,6 +81,7 @@ export default async function ReviewHistoryPage() {
               <TableHead>PR</TableHead>
               <TableHead>Feature</TableHead>
               <TableHead>Blocking</TableHead>
+              <TableHead>Confidence</TableHead>
               <TableHead>Summary</TableHead>
               <TableHead>When</TableHead>
             </TableRow>
@@ -108,6 +110,15 @@ export default async function ReviewHistoryPage() {
                     </Badge>
                   ) : (
                     <span className="text-muted-foreground">0</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-sm">
+                  {review.confidenceScore != null ? (
+                    <span title={confidenceLabel(review.confidenceScore)}>
+                      {review.confidenceScore}%
+                    </span>
+                  ) : (
+                    "—"
                   )}
                 </TableCell>
                 <TableCell className="max-w-md truncate text-sm">

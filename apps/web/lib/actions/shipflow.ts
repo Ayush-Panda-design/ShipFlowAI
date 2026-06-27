@@ -119,13 +119,18 @@ export async function rejectReleaseAction(
     throw new Error("Feature is not awaiting approval");
   }
 
+  const trimmedNotes = notes?.trim();
+  if (!trimmedNotes) {
+    throw new Error("Rejection notes are required — describe what must be fixed");
+  }
+
   await prisma.$transaction([
     prisma.releaseApproval.create({
       data: {
         featureRequestId,
         reviewerId: session.user.id,
         decision: "rejected",
-        notes: notes?.trim() || null,
+        notes: trimmedNotes,
       },
     }),
     prisma.featureRequest.update({

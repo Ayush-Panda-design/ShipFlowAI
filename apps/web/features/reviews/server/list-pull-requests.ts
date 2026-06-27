@@ -5,6 +5,16 @@ export async function listPullRequestsForInstallation(installationId: number) {
     where: { installationId },
     include: {
       featureRequest: { select: { id: true, title: true, status: true } },
+      aiReviews: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          blockingCount: true,
+          nonBlockingCount: true,
+          prdAlignment: true,
+          summary: true,
+        },
+      },
     },
     orderBy: { updatedAt: "desc" },
   });

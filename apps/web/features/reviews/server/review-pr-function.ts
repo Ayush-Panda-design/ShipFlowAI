@@ -172,6 +172,7 @@ export const reviewPullRequest = inngest.createFunction(
     const commentBody = formatReviewComment(enrichedReview.review, {
       blockingCount: enrichedReview.blockingCount,
       nonBlockingCount: enrichedReview.nonBlockingCount,
+      confidenceScore: enrichedReview.confidenceScore,
       prdAware: Boolean(reviewContext.featureRequestId && reviewContext.prd),
     });
 
@@ -186,6 +187,7 @@ export const reviewPullRequest = inngest.createFunction(
         review: enrichedReview.review,
         blockingCount: enrichedReview.blockingCount,
         nonBlockingCount: enrichedReview.nonBlockingCount,
+        confidenceScore: enrichedReview.confidenceScore,
         reviewComment: commentBody,
       });
     });

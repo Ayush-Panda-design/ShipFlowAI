@@ -8,6 +8,7 @@ type PersistReviewInput = {
   review: StructuredReview;
   blockingCount: number;
   nonBlockingCount: number;
+  confidenceScore?: number;
   reviewComment: string;
 };
 
@@ -32,6 +33,7 @@ export async function persistReviewResult(input: PersistReviewInput) {
         findings: JSON.stringify(input.review.findings),
         blockingCount: input.blockingCount,
         nonBlockingCount: input.nonBlockingCount,
+        confidenceScore: input.confidenceScore ?? null,
         prdAlignment: input.review.prdAlignment,
         status: "completed",
       },

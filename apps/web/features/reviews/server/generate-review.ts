@@ -6,7 +6,14 @@ import type {
   ReviewContext,
   StructuredReview,
 } from "@/features/reviews/types/structured-review";
-import { countFindings } from "@/features/reviews/types/structured-review";
+import {
+  computeConfidenceScore,
+  countFindings,
+} from "@/features/reviews/types/structured-review";
+
+const ACTIONABLE_RULES = `For every BLOCKING finding you MUST include codeSuggestion: a specific, copy-pasteable code fix (snippet, function body, or diff-style replacement). Never say only "consider refactoring" — show exactly what to change.
+
+For non_blocking findings, codeSuggestion is optional.`;
 
 const GENERIC_REVIEW_SYSTEM_PROMPT = `You are an expert code reviewer. Review pull request changes for correctness, security, performance, and maintainability.
 
@@ -14,7 +21,11 @@ Classify every issue as:
 - blocking: must be fixed before merge (bugs, security holes, missing critical requirements)
 - non_blocking: improvements, style, minor gaps
 
-CRITICAL: Use blocking ONLY for real defects or security issues. Do NOT mark correct security improvements, intended behavior, or positive changes as blocking. Observations and praise belong in non_blocking or should be omitted.
+CRITICAL: Use blocking ONLY for real defects or security issues. Do NOT mark correct security improvements, intended behavior, or positive changes as blocking.
+
+${ACTIONABLE_RULES}
+
+Also set confidenceScore (0-100): how close this PR is to passing review (100 = ship-ready, 0 = major rework needed).
 
 Be specific and reference file paths when possible.`;
 
@@ -26,7 +37,11 @@ Classify every issue as:
 - blocking: violates acceptance criteria, misses required behavior, security/data bugs, or breaks core PRD goals
 - non_blocking: polish, refactors, minor deviations, or suggestions
 
-CRITICAL: Use blocking ONLY when the PR must not ship without a fix. Correct implementations, defense-in-depth checks, and acceptable trade-offs are NOT blocking. Never flag "correctly implements X" as blocking.
+CRITICAL: Use blocking ONLY when the PR must not ship without a fix. Correct implementations, defense-in-depth checks, and acceptable trade-offs are NOT blocking.
+
+${ACTIONABLE_RULES}
+
+Set confidenceScore (0-100) from PRD alignment + severity of remaining issues.
 
 Always assess PRD alignment explicitly in prdAlignment.`;
 
@@ -40,6 +55,7 @@ const reviewOutputSchema = jsonSchema<StructuredReview>({
   properties: {
     summary: { type: "string" },
     prdAlignment: { type: "string" },
+    confidenceScore: { type: "number" },
     findings: {
       type: "array",
       items: {
@@ -51,6 +67,7 @@ const reviewOutputSchema = jsonSchema<StructuredReview>({
           title: { type: "string" },
           description: { type: "string" },
           filePath: { type: "string" },
+          codeSuggestion: { type: "string" },
         },
         required: ["id", "severity", "category", "title", "description"],
         additionalProperties: false,
@@ -83,7 +100,7 @@ function formatContext(chunks: RetrievedChunk[]) {
 
     if (totalChars + section.length > MAX_TOTAL_CONTEXT_CHARS) {
       sections.push(
-        `_Additional diff context omitted to stay within model limits._`
+        `_Additional diff context omitted to stay within model limits._`,
       );
       break;
     }
@@ -124,7 +141,7 @@ function formatTaskContext(context: ReviewContext) {
       (task, index) =>
         `${index + 1}. [${task.status}] ${task.title}${
           task.description ? ` — ${task.description}` : ""
-        }`
+        }`,
     )
     .join("\n");
 }
@@ -138,6 +155,7 @@ function normalizeReview(review: StructuredReview): StructuredReview {
         finding.severity === "blocking"
           ? ("blocking" as const)
           : ("non_blocking" as const),
+      codeSuggestion: finding.codeSuggestion?.trim() || undefined,
     }),
   );
 
@@ -145,13 +163,14 @@ function normalizeReview(review: StructuredReview): StructuredReview {
     summary: review.summary.trim(),
     prdAlignment: review.prdAlignment.trim(),
     findings,
+    confidenceScore: review.confidenceScore,
   };
 }
 
 export async function generateReview(
   title: string,
   contextChunks: RetrievedChunk[],
-  reviewContext: ReviewContext
+  reviewContext: ReviewContext,
 ) {
   const model = getReviewModel();
   const diffContext = formatContext(contextChunks);
@@ -171,7 +190,7 @@ ${formatTaskContext(reviewContext)}
 **Relevant diff context (semantic search):**
 ${diffContext}
 
-Return structured findings. Use blocking only for issues that must be fixed before merge. Never use blocking for observations about correct or improved code.`
+Return structured findings with codeSuggestion on every blocking issue. Set confidenceScore 0-100.`
     : `Review this pull request.
 
 **Title:** ${title}
@@ -179,7 +198,7 @@ Return structured findings. Use blocking only for issues that must be fixed befo
 **Relevant diff context (semantic search):**
 ${diffContext}
 
-Return structured findings. Use blocking only for correctness, security, or critical quality issues. Never use blocking for observations about correct or improved code.`;
+Return structured findings with codeSuggestion on every blocking issue. Set confidenceScore 0-100.`;
 
   const { object } = await generateObject({
     model,
@@ -196,5 +215,15 @@ Return structured findings. Use blocking only for correctness, security, or crit
 
 export function enrichReview(review: StructuredReview) {
   const counts = countFindings(review.findings);
-  return { review, ...counts };
+  const confidenceScore =
+    typeof review.confidenceScore === "number" &&
+    Number.isFinite(review.confidenceScore)
+      ? Math.max(0, Math.min(100, Math.round(review.confidenceScore)))
+      : computeConfidenceScore(review, counts);
+
+  return {
+    review: { ...review, confidenceScore },
+    ...counts,
+    confidenceScore,
+  };
 }

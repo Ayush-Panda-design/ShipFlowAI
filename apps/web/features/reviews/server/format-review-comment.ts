@@ -1,18 +1,33 @@
 import type { StructuredReview } from "@/features/reviews/types/structured-review";
+import { confidenceLabel } from "@/features/reviews/types/structured-review";
 
 function formatFinding(
   finding: StructuredReview["findings"][number],
-  index: number
+  index: number,
 ) {
   const label =
     finding.severity === "blocking" ? "🚫 Blocking" : "💡 Non-blocking";
   const location = finding.filePath ? ` (\`${finding.filePath}\`)` : "";
 
-  return `### ${index + 1}. ${label}: ${finding.title}${location}
+  const sections = [
+    `### ${index + 1}. ${label}: ${finding.title}${location}`,
+    "",
+    `**Category:** ${finding.category}`,
+    "",
+    finding.description,
+  ];
 
-**Category:** ${finding.category}
+  if (finding.codeSuggestion) {
+    sections.push(
+      "",
+      "**Suggested fix:**",
+      "```",
+      finding.codeSuggestion,
+      "```",
+    );
+  }
 
-${finding.description}`;
+  return sections.join("\n");
 }
 
 export function formatReviewComment(
@@ -20,9 +35,16 @@ export function formatReviewComment(
   options: {
     blockingCount: number;
     nonBlockingCount: number;
+    confidenceScore?: number;
     prdAware: boolean;
-  }
+  },
 ) {
+  const score = options.confidenceScore ?? review.confidenceScore;
+  const scoreLine =
+    typeof score === "number"
+      ? `**Review confidence:** ${score}/100 — ${confidenceLabel(score)}`
+      : null;
+
   const sections = [
     "## ShipFlow AI Review",
     "",
@@ -34,6 +56,7 @@ export function formatReviewComment(
     "",
     `**PRD alignment:** ${review.prdAlignment}`,
     "",
+    ...(scoreLine ? [scoreLine, ""] : []),
     `**Findings:** ${options.blockingCount} blocking · ${options.nonBlockingCount} non-blocking`,
   ];
 
@@ -42,19 +65,19 @@ export function formatReviewComment(
   } else {
     sections.push(
       "",
-      ...review.findings.map((finding, index) => formatFinding(finding, index))
+      ...review.findings.map((finding, index) => formatFinding(finding, index)),
     );
   }
 
   if (options.blockingCount > 0) {
     sections.push(
       "",
-      "> ⚠️ Blocking issues found — feature status set to **fix needed**."
+      "> ⚠️ Blocking issues found — feature status set to **fix needed**.",
     );
   } else if (options.prdAware) {
     sections.push(
       "",
-      "> ✅ No blocking issues — feature is **awaiting approval**."
+      "> ✅ No blocking issues — feature is **awaiting approval**.",
     );
   }
 
