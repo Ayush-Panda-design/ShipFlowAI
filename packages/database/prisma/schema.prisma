@@ -265,6 +265,7 @@ model AIReview {
   findings         String   @db.Text
   blockingCount    Int      @default(0)
   nonBlockingCount Int      @default(0)
+  confidenceScore  Int?
   prdAlignment     String?  @db.Text
   status           String   @default("completed")
   createdAt        DateTime @default(now())

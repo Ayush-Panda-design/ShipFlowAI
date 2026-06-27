@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import {
   approveReleaseAction,
   rejectReleaseAction,
@@ -85,7 +86,8 @@ function RejectReleaseForm({
       }}
     >
       <p className="text-sm text-muted-foreground">
-        Reject to send the feature back for fixes (status → fix needed).
+        Reject to send the feature back for fixes (status → fix needed). Notes are
+        required for the audit trail.
       </p>
       <Textarea
         name="rejectNotes"
@@ -218,25 +220,51 @@ export function ApprovalHistory({ approvals }: { approvals: ApprovalRecord[] }) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Approval history</CardTitle>
+        <CardTitle className="text-base">Approval audit trail</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {approvals.map((approval) => (
-          <div key={approval.id} className="rounded-lg border p-3 text-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium capitalize">{approval.decision}</span>
-              <span className="text-xs text-muted-foreground">
-                {approval.reviewer.name} ·{" "}
-                {approval.createdAt.toLocaleString()}
-              </span>
-            </div>
-            {approval.notes && (
-              <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
-                {approval.notes}
-              </p>
-            )}
-          </div>
-        ))}
+      <CardContent>
+        <ol className="relative space-y-0 border-l border-border pl-6">
+          {approvals.map((approval, index) => (
+            <li key={approval.id} className="relative pb-6 last:pb-0">
+              <span
+                className={cn(
+                  "absolute -left-[1.35rem] top-1 size-2.5 rounded-full border-2 border-background",
+                  approval.decision === "approved"
+                    ? "bg-emerald-500"
+                    : "bg-destructive",
+                )}
+              />
+              <div className="rounded-lg border p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium capitalize">
+                    {approval.decision}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {approval.createdAt.toLocaleString()}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {approval.reviewer.name} ({approval.reviewer.email})
+                </p>
+                {approval.notes ? (
+                  <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+                    <span className="font-medium text-foreground">Notes: </span>
+                    {approval.notes}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs italic text-muted-foreground">
+                    No notes recorded
+                  </p>
+                )}
+              </div>
+              {index < approvals.length - 1 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  ↓ then developer addressed feedback
+                </p>
+              )}
+            </li>
+          ))}
+        </ol>
       </CardContent>
     </Card>
   );

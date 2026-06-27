@@ -120,7 +120,22 @@ function createPrismaClient() {
 }
 
 function isClientComplete(client: PrismaClient) {
-  return "session" in client && "workspace" in client && "pullRequest" in client;
+  if (!("session" in client && "workspace" in client && "pullRequest" in client)) {
+    return false;
+  }
+
+  // Bust stale dev singletons when the schema gains new AIReview fields.
+  const runtime = client as unknown as {
+    _runtimeDataModel?: {
+      models?: Record<string, { fields?: Array<{ name: string }> }>;
+    };
+  };
+  const aiReviewFields = runtime._runtimeDataModel?.models?.AIReview?.fields;
+  if (!aiReviewFields) {
+    return true;
+  }
+
+  return aiReviewFields.some((field) => field.name === "confidenceScore");
 }
 
 function getPrismaClient() {
@@ -128,6 +143,11 @@ function getPrismaClient() {
 
   if (cached && isClientComplete(cached)) {
     return cached;
+  }
+
+  if (cached) {
+    void cached.$disconnect().catch(() => undefined);
+    globalForPrisma.prisma = undefined;
   }
 
   const client = createPrismaClient();
