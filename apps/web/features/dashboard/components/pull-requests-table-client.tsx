@@ -16,14 +16,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
 import { RunReviewButton } from "@/features/dashboard/components/run-review-button";
 import { SyncPullRequestsButton } from "@/features/dashboard/components/sync-pull-requests-button";
@@ -106,13 +98,13 @@ function ReviewStatusCell({
         {status}
       </Badge>
       {isProcessing ? (
-        <span className="text-xs text-sky-600 dark:text-sky-400">
+        <span className="line-clamp-2 text-[11px] leading-tight text-sky-600 dark:text-sky-400">
           {progressHint ?? "Queued"} · {formatElapsed(updatedAt)}
         </span>
       ) : null}
       {failureMessage ? (
         <span
-          className="max-w-[14rem] truncate text-xs text-destructive"
+          className="line-clamp-2 text-[11px] leading-tight text-destructive"
           title={failureMessage}
         >
           {failureMessage}
@@ -268,20 +260,18 @@ export function PullRequestsTableClient({
       {filteredPullRequests.length === 0 ? (
         <p className="text-sm text-muted-foreground">No pull requests match your filters.</p>
       ) : (
-        <div className="max-h-[min(70vh,720px)] overflow-y-auto rounded-lg border">
-          <Table className="table-fixed w-full">
-            <TableHeader className="sticky top-0 z-10 bg-background">
-              <TableRow>
-                <TableHead className="w-14">PR</TableHead>
-                <TableHead>Change</TableHead>
-                <TableHead className="w-28">Review</TableHead>
-                <TableHead className="w-28 text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPullRequests.map((pullRequest) => {
-                const review = pullRequest.aiReviews[0];
-                const confidenceScore = review
+        <div className="max-h-[min(70vh,720px)] overflow-y-auto overflow-x-hidden rounded-lg border">
+          <div className="sticky top-0 z-10 grid grid-cols-[2.75rem_minmax(0,1fr)_10.5rem] gap-x-3 border-b bg-background px-3 py-2 text-xs font-medium text-muted-foreground">
+            <span>PR</span>
+            <span>Change</span>
+            <span>Review</span>
+          </div>
+          <div className="divide-y">
+            {filteredPullRequests.map((pullRequest) => {
+              const review = pullRequest.aiReviews[0];
+              const inFlight = isInFlightPrStatus(pullRequest.status);
+              const confidenceScore =
+                !inFlight && review
                   ? review.confidenceScore ??
                     computeConfidenceScore(
                       {
@@ -295,9 +285,12 @@ export function PullRequestsTableClient({
                     )
                   : null;
 
-                return (
-                <TableRow key={pullRequest.id}>
-                  <TableCell className="align-top">
+              return (
+                <div
+                  key={pullRequest.id}
+                  className="grid grid-cols-[2.75rem_minmax(0,1fr)_10.5rem] items-start gap-x-3 px-3 py-3"
+                >
+                  <div className="pt-0.5">
                     <span className="inline-flex items-center gap-1 text-sm font-medium">
                       #{pullRequest.prNumber}
                       {pullRequest.source === "ai" ? (
@@ -306,90 +299,91 @@ export function PullRequestsTableClient({
                         </span>
                       ) : null}
                     </span>
-                  </TableCell>
-                  <TableCell className="min-w-0 align-top">
-                    <div className="flex min-w-0 flex-col gap-1">
-                      <p
-                        className="truncate text-sm font-medium"
-                        title={pullRequest.title}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p
+                      className="truncate text-sm font-medium"
+                      title={pullRequest.title}
+                    >
+                      {pullRequest.title}
+                    </p>
+                    <p
+                      className="mt-0.5 truncate text-xs text-muted-foreground"
+                      title={`${pullRequest.repoFullName} · @${pullRequest.authorLogin}`}
+                    >
+                      {shortRepoName(pullRequest.repoFullName)} · @{pullRequest.authorLogin}
+                      {pullRequest.filesChanged != null ? (
+                        <>
+                          {" · "}
+                          <span
+                            className={cn(
+                              pullRequest.sizeWarning === "critical" && "text-destructive",
+                              pullRequest.sizeWarning === "warn" && "text-amber-600",
+                            )}
+                          >
+                            {pullRequest.sizeWarning ? (
+                              <AlertTriangle className="mr-0.5 inline size-3" />
+                            ) : null}
+                            {pullRequest.filesChanged}f / {pullRequest.linesChanged ?? 0}L
+                          </span>
+                        </>
+                      ) : null}
+                    </p>
+                    {pullRequest.featureRequest ? (
+                      <Link
+                        href={`${DASHBOARD_BASE_PATH}/feature-requests/${pullRequest.featureRequest.id}`}
+                        className="mt-0.5 block truncate text-xs text-primary hover:underline"
+                        title={pullRequest.featureRequest.title}
                       >
-                        {pullRequest.title}
-                      </p>
-                      <p
-                        className="truncate text-xs text-muted-foreground"
-                        title={`${pullRequest.repoFullName} · @${pullRequest.authorLogin}`}
-                      >
-                        {shortRepoName(pullRequest.repoFullName)} · @{pullRequest.authorLogin}
-                        {pullRequest.filesChanged != null ? (
-                          <>
-                            {" · "}
-                            <span
-                              className={cn(
-                                pullRequest.sizeWarning === "critical" && "text-destructive",
-                                pullRequest.sizeWarning === "warn" && "text-amber-600",
-                              )}
-                            >
-                              {pullRequest.sizeWarning ? (
-                                <AlertTriangle className="mr-0.5 inline size-3" />
-                              ) : null}
-                              {pullRequest.filesChanged}f / {pullRequest.linesChanged ?? 0}L
-                            </span>
-                          </>
-                        ) : null}
-                      </p>
-                      {pullRequest.featureRequest ? (
-                        <Link
-                          href={`${DASHBOARD_BASE_PATH}/feature-requests/${pullRequest.featureRequest.id}`}
-                          className="truncate text-xs text-primary hover:underline"
-                          title={pullRequest.featureRequest.title}
-                        >
-                          {pullRequest.featureRequest.title}
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Unlinked</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="align-top">
-                    <div className="flex flex-col gap-1">
-                      <ReviewStatusCell
-                        status={pullRequest.status}
-                        reviewComment={pullRequest.reviewComment}
-                        updatedAt={pullRequest.updatedAt}
-                      />
-                      {confidenceScore != null ? (
-                        <span
-                          className="text-xs text-muted-foreground"
-                          title={confidenceLabel(confidenceScore)}
-                        >
-                          {confidenceScore}% confidence
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No review yet</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="align-top text-right">
-                    <div className="flex flex-col items-end gap-1">
-                      <RunReviewButton
-                        pullRequestId={pullRequest.id}
-                        status={pullRequest.status}
-                        updatedAt={pullRequest.updatedAt}
-                        disabled={!reviewConfigured}
-                      />
+                        {pullRequest.featureRequest.title}
+                      </Link>
+                    ) : (
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        Unlinked
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <ReviewStatusCell
+                      status={pullRequest.status}
+                      reviewComment={pullRequest.reviewComment}
+                      updatedAt={pullRequest.updatedAt}
+                    />
+                    {inFlight ? (
+                      <span className="text-[11px] text-muted-foreground">
+                        Review in progress…
+                      </span>
+                    ) : confidenceScore != null ? (
                       <span
                         className="text-[11px] text-muted-foreground"
-                        title={new Date(pullRequest.updatedAt).toLocaleString()}
+                        title={confidenceLabel(confidenceScore)}
                       >
-                        {compactUpdatedAt(pullRequest.updatedAt)}
+                        {confidenceScore}% confidence
                       </span>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">
+                        No review yet
+                      </span>
+                    )}
+                    <RunReviewButton
+                      pullRequestId={pullRequest.id}
+                      status={pullRequest.status}
+                      updatedAt={pullRequest.updatedAt}
+                      disabled={!reviewConfigured}
+                    />
+                    <span
+                      className="text-center text-[11px] text-muted-foreground"
+                      title={new Date(pullRequest.updatedAt).toLocaleString()}
+                    >
+                      {compactUpdatedAt(pullRequest.updatedAt)}
+                    </span>
+                  </div>
+                </div>
               );
-              })}
-            </TableBody>
-          </Table>
+            })}
+          </div>
         </div>
       )}
     </div>

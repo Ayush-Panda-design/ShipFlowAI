@@ -1,6 +1,6 @@
 "use client";
 
-import { Play } from "lucide-react";
+import { Loader2, Play } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import {
   isInFlightPrStatus,
 } from "@repo/services/constants";
 import { trpc } from "@/trpc/client";
+import { cn } from "@/lib/utils";
 
 type RunReviewButtonProps = {
   pullRequestId: string;
@@ -16,6 +17,7 @@ type RunReviewButtonProps = {
   updatedAt: string;
   disabled?: boolean;
   label?: string;
+  className?: string;
 };
 
 function isStaleInFlight(status: string, updatedAt: string) {
@@ -31,7 +33,8 @@ export function RunReviewButton({
   status,
   updatedAt,
   disabled = false,
-  label = "Run review",
+  label = "Review",
+  className,
 }: RunReviewButtonProps) {
   const utils = trpc.useUtils();
   const inFlight = isInFlightPrStatus(status) && !isStaleInFlight(status, updatedAt);
@@ -52,22 +55,27 @@ export function RunReviewButton({
   });
 
   const buttonLabel = runReview.isPending
-    ? "Queuing…"
+    ? "Queuing"
     : inFlight
-      ? "In progress…"
+      ? "Running"
       : status === "failed" || isStaleInFlight(status, updatedAt)
-        ? "Retry review"
+        ? "Retry"
         : label;
 
   return (
     <Button
       type="button"
       variant="outline"
-      size="sm"
+      size="xs"
       disabled={disabled || runReview.isPending || inFlight}
       onClick={() => runReview.mutate({ pullRequestId })}
+      className={cn("w-full", className)}
     >
-      <Play />
+      {inFlight || runReview.isPending ? (
+        <Loader2 className="animate-spin" />
+      ) : (
+        <Play />
+      )}
       {buttonLabel}
     </Button>
   );
