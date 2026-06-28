@@ -11,6 +11,12 @@ import {
   countFindings,
 } from "@/features/reviews/types/structured-review";
 
+const CODE_SUGGESTION_INSTRUCTIONS = `For EACH finding, when you can propose a concrete fix:
+- Set "codeSuggestion" to the corrected code ONLY (the replacement snippet a developer can paste in). No prose, no explanation, no diff markers like + or -.
+- Set "filePath" to the file the fix belongs in.
+- Set "lineStart" (and "lineEnd" if it spans multiple lines) to the 1-based line numbers of the original code being replaced, when you can infer them from the diff.
+Keep the suggestion minimal — only the lines that change. Omit "codeSuggestion" only when no concrete code fix is possible (e.g. purely architectural advice).`;
+
 const GENERIC_REVIEW_SYSTEM_PROMPT = `You are an expert code reviewer. Review pull request changes for correctness, security, performance, and maintainability.
 
 Classify every issue as:
@@ -19,7 +25,8 @@ Classify every issue as:
 
 CRITICAL: Use blocking ONLY for real defects or security issues.
 
-Put concrete fix guidance in the description field (1-2 sentences). Do NOT use separate code blocks.
+Put a brief explanation (1-2 sentences) in the description field.
+${CODE_SUGGESTION_INSTRUCTIONS}
 
 Set confidenceScore (0-100) for the overall PR and confidence (0-100) on EACH finding.
 Include filePath when citing code. Limit to at most 8 findings — prioritize blocking issues.`;
@@ -30,7 +37,10 @@ Verify the pull request against the linked PRD, acceptance criteria, and enginee
 
 Classify issues as blocking or non_blocking. Use blocking ONLY when the PR must not ship without a fix.
 
-Put fix guidance in description (brief, plain text). Set confidenceScore and per-finding confidence (0-100).
+Put a brief explanation in description (plain text).
+${CODE_SUGGESTION_INSTRUCTIONS}
+
+Set confidenceScore and per-finding confidence (0-100).
 Include filePath when citing code. Max 8 findings. Always assess PRD alignment in prdAlignment.`;
 
 const MAX_FINDINGS = 8;
@@ -53,6 +63,9 @@ const reviewOutputSchema = jsonSchema<StructuredReview>({
           title: { type: "string" },
           description: { type: "string" },
           filePath: { type: "string" },
+          lineStart: { type: "number" },
+          lineEnd: { type: "number" },
+          codeSuggestion: { type: "string" },
           confidence: { type: "number" },
         },
         required: ["id", "severity", "category", "title", "description"],
@@ -139,6 +152,17 @@ function normalizeReview(review: StructuredReview): StructuredReview {
       title: truncateText(finding.title, 200),
       description: truncateText(finding.description, 500),
       filePath: finding.filePath?.slice(0, 300),
+      lineStart:
+        typeof finding.lineStart === "number" && Number.isFinite(finding.lineStart)
+          ? Math.max(1, Math.round(finding.lineStart))
+          : undefined,
+      lineEnd:
+        typeof finding.lineEnd === "number" && Number.isFinite(finding.lineEnd)
+          ? Math.max(1, Math.round(finding.lineEnd))
+          : undefined,
+      codeSuggestion: finding.codeSuggestion
+        ? truncateText(finding.codeSuggestion.trim(), 1200)
+        : undefined,
       confidence:
         typeof finding.confidence === "number" && Number.isFinite(finding.confidence)
           ? Math.max(0, Math.min(100, Math.round(finding.confidence)))

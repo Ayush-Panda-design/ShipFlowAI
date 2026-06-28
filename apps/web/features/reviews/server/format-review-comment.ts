@@ -26,10 +26,12 @@ function formatFinding(
   ];
 
   if (finding.codeSuggestion) {
+    const fence =
+      finding.filePath && finding.lineStart != null ? "suggestion" : "";
     sections.push(
       "",
-      "**Suggested fix:**",
-      "```",
+      "**🤖 Suggested fix:**",
+      "```" + fence,
       finding.codeSuggestion,
       "```",
     );

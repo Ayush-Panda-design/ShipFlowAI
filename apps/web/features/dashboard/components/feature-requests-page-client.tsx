@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+
+import {
+  readLastFeature,
+  clearLastFeature,
+  type LastFeature,
+} from "@/features/shipflow/lib/last-feature";
 
 import { Button } from "@/components/ui/button";
 import { ButtonLoadingLabel } from "@/components/ui/loading-illustration";
@@ -33,6 +39,11 @@ export function FeatureRequestsPageClient({
 }: FeatureRequestsPageClientProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [resume, setResume] = useState<LastFeature | null>(null);
+
+  useEffect(() => {
+    setResume(readLastFeature());
+  }, []);
 
   const utils = trpc.useUtils();
   const { data: features = [], isLoading } = trpc.featureRequest.list.useQuery({
@@ -76,6 +87,47 @@ export function FeatureRequestsPageClient({
         </div>
         <ProjectPicker projects={projects} activeProjectId={projectId} />
       </div>
+
+      {resume ? (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <ArrowRight className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Continue where you left off
+              </p>
+              <p className="truncate text-sm font-medium">
+                {resume.title}
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  {FEATURE_STATUS_LABELS[resume.status] ?? resume.status}
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <Link
+              href={`/dashboard/feature-requests/${resume.id}`}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Resume
+              <ArrowRight className="size-3.5" />
+            </Link>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => {
+                clearLastFeature();
+                setResume(null);
+              }}
+              className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <details className="rounded-lg border bg-card">
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium">

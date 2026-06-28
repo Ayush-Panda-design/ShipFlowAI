@@ -8,6 +8,7 @@ import {
   listFeatureRequests,
   listLinkablePullRequests,
   listPlanApprovals,
+  sendReviewJob,
   unlinkPullRequestFromFeature,
   updateFeatureStatus,
 } from "@repo/services";
@@ -153,7 +154,50 @@ export const featureRequestRouter = router({
         workspaceId: feature.project.workspaceId,
       });
 
-      return { ok: true };
+      // Linking should advance the workflow: move into review and (re)queue a
+      // PRD-aware review for the freshly linked PR. This makes the tracker
+      // progress immediately instead of waiting for a webhook.
+      const pullRequest = await prisma.pullRequest.findUnique({
+        where: { id: input.pullRequestId },
+        select: {
+          installationId: true,
+          repoFullName: true,
+          prNumber: true,
+          title: true,
+          authorLogin: true,
+          headSha: true,
+          baseBranch: true,
+        },
+      });
+
+      let reviewQueued = false;
+
+      if (pullRequest) {
+        await prisma.pullRequest.update({
+          where: { id: input.pullRequestId },
+          data: { status: "pending" },
+        });
+
+        await updateFeatureStatus(input.featureRequestId, "in_review");
+
+        try {
+          await sendReviewJob({
+            installationId: pullRequest.installationId,
+            repoFullName: pullRequest.repoFullName,
+            prNumber: pullRequest.prNumber,
+            title: pullRequest.title,
+            authorLogin: pullRequest.authorLogin,
+            headSha: pullRequest.headSha,
+            baseBranch: pullRequest.baseBranch,
+            action: "synchronize",
+          });
+          reviewQueued = true;
+        } catch {
+          // Review pipeline may be unconfigured locally; linking still succeeds.
+        }
+      }
+
+      return { ok: true, reviewQueued };
     }),
 
   unlinkPullRequest: protectedProcedure

@@ -85,7 +85,9 @@ export async function listLinkablePullRequests(
     include: {
       project: {
         include: {
-          repositories: { select: { repoFullName: true } },
+          repositories: {
+            select: { repoFullName: true, installationId: true },
+          },
         },
       },
     },
@@ -95,28 +97,30 @@ export async function listLinkablePullRequests(
     throw new Error("Feature request not found");
   }
 
-  const repoNames = feature.project.repositories.map((repo) => repo.repoFullName);
-  if (repoNames.length === 0) {
-    return [];
+  const connectedRepos = feature.project.repositories;
+  if (connectedRepos.length === 0) {
+    return {
+      pullRequests: [],
+      emptyReason: "no_connected_repos" as const,
+      connectedRepos: [] as string[],
+    };
   }
 
-  const installation = await prisma.gitHubInstallation.findFirst({
-    where: { workspaceId },
-    select: { installationId: true },
-  });
+  const repoNames = connectedRepos.map((repo) => repo.repoFullName);
+  const installationIds = [
+    ...new Set(connectedRepos.map((repo) => repo.installationId)),
+  ];
 
-  if (!installation) {
-    return [];
-  }
+  const installationFilter =
+    installationIds.length === 1
+      ? installationIds[0]!
+      : { in: installationIds };
 
-  return prisma.pullRequest.findMany({
+  const pullRequests = await prisma.pullRequest.findMany({
     where: {
-      installationId: installation.installationId,
+      installationId: installationFilter,
       repoFullName: { in: repoNames },
-      OR: [
-        { featureRequestId: null },
-        { featureRequestId: { not: featureRequestId } },
-      ],
+      featureRequestId: null,
     },
     orderBy: { updatedAt: "desc" },
     take: 50,
@@ -126,7 +130,28 @@ export async function listLinkablePullRequests(
       prNumber: true,
       title: true,
       status: true,
-      featureRequestId: true,
     },
   });
+
+  if (pullRequests.length > 0) {
+    return {
+      pullRequests,
+      emptyReason: null,
+      connectedRepos: repoNames,
+    };
+  }
+
+  const syncedCount = await prisma.pullRequest.count({
+    where: {
+      installationId: installationFilter,
+      repoFullName: { in: repoNames },
+    },
+  });
+
+  return {
+    pullRequests: [],
+    emptyReason:
+      syncedCount === 0 ? ("no_synced_prs" as const) : ("all_linked" as const),
+    connectedRepos: repoNames,
+  };
 }

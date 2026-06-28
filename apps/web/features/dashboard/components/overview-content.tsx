@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
 
 import {
   Card,
@@ -10,23 +9,13 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { OverviewRecentReviews } from "@/features/dashboard/components/overview-recent-reviews";
 import type { OverviewData } from "@/features/dashboard/server/overview-data";
 import {
   githubAppStatusStyles,
-  statusStyles,
-  type ReviewStatus,
 } from "@/features/dashboard/lib/status-styles";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
 import { cn } from "@/lib/utils";
-
-function StatusBadge({ status }: { status: ReviewStatus }) {
-  const style = statusStyles[status];
-  return (
-    <Badge variant="outline" className={cn("font-medium", style.badgeClassName)}>
-      {style.label}
-    </Badge>
-  );
-}
 
 export function OverviewContent({ data }: { data: OverviewData }) {
   const stats = [
@@ -107,38 +96,8 @@ export function OverviewContent({ data }: { data: OverviewData }) {
             View all
           </Link>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {data.recentReviews.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No AI reviews yet. Connect the GitHub App and open a pull request.
-            </p>
-          ) : (
-            data.recentReviews.map((review) => (
-              <div
-                key={review.id}
-                className="flex flex-col gap-3 rounded-xl border border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="space-y-1">
-                  <p className="font-medium">{review.pullRequest}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {review.repository} #{review.prNumber} ·{" "}
-                    {formatDistanceToNow(review.updatedAt, { addSuffix: true })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {review.blockingCount > 0 && (
-                    <Badge
-                      variant="outline"
-                      className="border-destructive/40 bg-destructive/10 text-destructive"
-                    >
-                      {review.blockingCount} blocking
-                    </Badge>
-                  )}
-                  <StatusBadge status={review.status} />
-                </div>
-              </div>
-            ))
-          )}
+        <CardContent>
+          <OverviewRecentReviews reviews={data.recentReviews} />
         </CardContent>
       </Card>
     </div>

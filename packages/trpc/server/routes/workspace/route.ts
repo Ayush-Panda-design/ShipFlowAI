@@ -47,10 +47,25 @@ export const workspaceRouter = router({
         throw new Error("Workspace not found");
       }
       const events = await listActivityEvents(input.workspaceId);
-      return events.map((event) => ({
-        ...event,
-        createdAt: event.createdAt.toISOString(),
-      }));
+      return events.map((event) => {
+        let pullRequestId: string | null = null;
+        if (event.metadata) {
+          try {
+            const parsed = JSON.parse(event.metadata) as {
+              pullRequestId?: string;
+            };
+            pullRequestId = parsed.pullRequestId ?? null;
+          } catch {
+            pullRequestId = null;
+          }
+        }
+
+        return {
+          ...event,
+          createdAt: event.createdAt.toISOString(),
+          pullRequestId,
+        };
+      });
     }),
 
   listMembers: protectedProcedure

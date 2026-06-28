@@ -1,10 +1,12 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { RepoPullRequestsDialog } from "@/features/dashboard/components/repo-pull-requests-dialog";
+import { usePullRequestReviewDialog } from "@/features/dashboard/components/use-pull-request-review-dialog";
 import {
   connectRepositoryAction,
   disconnectRepositoryAction,
@@ -30,6 +32,9 @@ export function ReposConnectPanel({
   repoLimit,
 }: ReposConnectPanelProps) {
   const [isPending, startTransition] = useTransition();
+  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+  const [repoDialogOpen, setRepoDialogOpen] = useState(false);
+  const { openReview, dialog } = usePullRequestReviewDialog();
   const connectedSet = new Set(connectedRepos.map((repo) => repo.repoFullName));
 
   const toggleRepo = (repoFullName: string, defaultBranch: string, connected: boolean) => {
@@ -64,6 +69,10 @@ export function ReposConnectPanel({
         <span>Connect repos to your project for ShipFlow tracking and limits.</span>
       </div>
       <ReposList
+        onRepoClick={(repo) => {
+          setSelectedRepo(repo.fullName);
+          setRepoDialogOpen(true);
+        }}
         renderActions={(repo) => {
           const connected = connectedSet.has(repo.fullName);
           return (
@@ -81,6 +90,13 @@ export function ReposConnectPanel({
           );
         }}
       />
+      <RepoPullRequestsDialog
+        open={repoDialogOpen}
+        onOpenChange={setRepoDialogOpen}
+        repoFullName={selectedRepo}
+        onSelectPullRequest={openReview}
+      />
+      {dialog}
     </div>
   );
 }

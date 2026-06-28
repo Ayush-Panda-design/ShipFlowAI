@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+
+import {
+  rememberLastFeature,
+  isTerminalFeatureStatus,
+  clearLastFeature,
+} from "@/features/shipflow/lib/last-feature";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +22,7 @@ import {
   ReleaseApprovalPanel,
 } from "@/features/shipflow/components/release-approval-panel";
 import { PrdDiffPanel } from "@/features/shipflow/components/prd-diff-panel";
-import { WorkflowStatusCard } from "@/features/shipflow/components/workflow-status-card";
+import { WorkflowStepper } from "@/features/shipflow/components/workflow-stepper";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ButtonLoadingLabel, LoadingIllustration } from "@/components/ui/loading-illustration";
 import {
@@ -42,20 +48,47 @@ export function FeatureRequestDetailClient({
   const { data: feature, isLoading, error } = trpc.featureRequest.get.useQuery(
     { id: featureId },
     {
+      refetchOnWindowFocus: true,
       refetchInterval: (query) => {
         const data = query.state.data;
         if (!data) return false;
+        // Terminal states never change — stop polling.
+        if (
+          data.status === "shipped" ||
+          data.status === "rejected" ||
+          data.status === "duplicate"
+        ) {
+          return false;
+        }
+        // AI jobs or in-flight PRs update fast.
         if (isInFlightFeatureStatus(data.status)) return 3000;
         const prInFlight = data.pullRequests?.some(
           (pr) => pr.status === "pending" || pr.status === "processing",
         );
-        return prInFlight ? 3000 : false;
+        if (prInFlight) return 3000;
+        // Otherwise keep the page live (PR links, reviews, status) at a
+        // gentler cadence so no manual refresh is ever needed.
+        return 5000;
       },
     },
   );
 
   const workspaceId = feature?.project.workspaceId;
   const inFlight = feature ? isInFlightFeatureStatus(feature.status) : false;
+
+  useEffect(() => {
+    if (!feature) return;
+    if (isTerminalFeatureStatus(feature.status)) {
+      clearLastFeature();
+      return;
+    }
+    rememberLastFeature({
+      id: feature.id,
+      title: feature.title,
+      status: feature.status,
+      projectId: feature.projectId,
+    });
+  }, [feature]);
 
   const { data: workspace } = trpc.workspace.get.useQuery(
     { workspaceId: workspaceId ?? "" },
@@ -131,6 +164,12 @@ export function FeatureRequestDetailClient({
 
   const canGenerateTasks =
     feature?.status === "prd_ready" && feature.prd?.status === "approved";
+
+  const linkedPrKeys = new Set(
+    (feature?.pullRequests ?? []).map(
+      (pr) => `${pr.repoFullName}#${pr.prNumber}`,
+    ),
+  );
 
   const creditAffordance = (cost: number) =>
     getCreditAffordance({ cost, credits, inFlight, billingHref });
@@ -262,7 +301,7 @@ export function FeatureRequestDetailClient({
         </Card>
       ) : null}
 
-      <WorkflowStatusCard status={feature.status} />
+      <WorkflowStepper status={feature.status} />
 
       {feature.status === "rejected" && (
         <Card className="border-destructive/40 bg-destructive/5">
@@ -508,15 +547,30 @@ export function FeatureRequestDetailClient({
 
       <PrLinkPanel
         featureRequestId={featureId}
-        linkedPullRequests={feature.pullRequests}
+        linkedPullRequests={feature.pullRequests.map((pr) => ({
+          id: pr.id,
+          repoFullName: pr.repoFullName,
+          prNumber: pr.prNumber,
+          title: pr.title,
+          status: pr.status,
+          updatedAt: String(pr.updatedAt),
+        }))}
         onUpdated={invalidate}
       />
 
       <AiReviewPanel
-        reviews={feature.aiReviews.map((review) => ({
-          ...review,
-          createdAt: new Date(review.createdAt),
-        }))}
+        reviews={feature.aiReviews
+          .filter((review) =>
+            review.pullRequest
+              ? linkedPrKeys.has(
+                  `${review.pullRequest.repoFullName}#${review.pullRequest.prNumber}`,
+                )
+              : false,
+          )
+          .map((review) => ({
+            ...review,
+            createdAt: new Date(review.createdAt),
+          }))}
       />
 
       <ReleaseApprovalPanel

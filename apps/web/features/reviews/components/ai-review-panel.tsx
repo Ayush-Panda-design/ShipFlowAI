@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { ReviewFinding } from "@/features/reviews/types/structured-review";
 import { ReviewDiffPanel } from "@/features/reviews/components/review-diff-panel";
 import { FindingFeedback } from "@/features/reviews/components/finding-feedback";
+import { CodeSuggestion } from "@/features/reviews/components/code-suggestion";
 import {
   confidenceLabel,
   parseFindings,
@@ -167,14 +168,13 @@ export function AiReviewPanel({ reviews }: { reviews: AiReviewRecord[] }) {
                 <p className="text-xs text-muted-foreground">{finding.category}</p>
                 <p className="mt-1 whitespace-pre-wrap">{finding.description}</p>
                 {finding.codeSuggestion && (
-                  <div className="mt-3">
-                    <p className="mb-1 text-xs font-medium text-muted-foreground">
-                      Suggested fix
-                    </p>
-                    <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
-                      {finding.codeSuggestion}
-                    </pre>
-                  </div>
+                  <CodeSuggestion
+                    className="mt-3"
+                    code={finding.codeSuggestion}
+                    filePath={finding.filePath}
+                    lineStart={finding.lineStart}
+                    lineEnd={finding.lineEnd}
+                  />
                 )}
                 <FindingFeedback reviewId={selected.id} finding={finding} />
               </div>

@@ -17,6 +17,8 @@ import {
   filterBySearch,
 } from "@/features/dashboard/components/dashboard-list-filters";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
+import { ClickableReviewSection } from "@/features/dashboard/components/pull-request-review-dialog";
+import { usePullRequestReviewDialog } from "@/features/dashboard/components/use-pull-request-review-dialog";
 import { LoadingState } from "@/components/ui/loading-state";
 import {
   AutoHideScroll,
@@ -35,6 +37,7 @@ function shortRepoName(repoFullName: string) {
 export function ReviewHistoryTableClient() {
   const [search, setSearch] = useState("");
   const [blockingFilter, setBlockingFilter] = useState("all");
+  const { openReview, dialog } = usePullRequestReviewDialog();
 
   const { data: listData } = trpc.review.list.useQuery(undefined, {
     refetchInterval: 4000,
@@ -148,7 +151,18 @@ export function ReviewHistoryTableClient() {
                   #{review.pullRequest.prNumber}
                 </div>
 
-                <div className="min-w-0">
+                <ClickableReviewSection
+                  className="-mx-1 px-1 py-0.5"
+                  onClick={() =>
+                    openReview({
+                      pullRequestId: review.pullRequest.id,
+                      title: review.pullRequest.title,
+                      repoFullName: review.pullRequest.repoFullName,
+                      prNumber: review.pullRequest.prNumber,
+                      status: review.pullRequest.status,
+                    })
+                  }
+                >
                   <p
                     className="truncate text-sm font-medium"
                     title={review.pullRequest.title}
@@ -172,11 +186,12 @@ export function ReviewHistoryTableClient() {
                       href={`${DASHBOARD_BASE_PATH}/feature-requests/${review.featureRequest.id}`}
                       className="mt-1 block truncate text-xs text-primary hover:underline"
                       title={review.featureRequest.title}
+                      onClick={(event) => event.stopPropagation()}
                     >
                       {review.featureRequest.title}
                     </Link>
                   ) : null}
-                </div>
+                </ClickableReviewSection>
 
                 <div className="flex min-w-0 flex-col items-end gap-1 pt-0.5 text-right">
                   {review.blockingCount > 0 ? (
@@ -218,6 +233,7 @@ export function ReviewHistoryTableClient() {
           </div>
         </AutoHideScroll>
       )}
+      {dialog}
     </div>
   );
 }

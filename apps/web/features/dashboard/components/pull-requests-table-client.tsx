@@ -18,6 +18,11 @@ import {
 } from "@/components/ui/empty";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
 import { RunReviewButton } from "@/features/dashboard/components/run-review-button";
+import {
+  ClickableReviewSection,
+  PullRequestReviewDialog,
+  pullRequestHasReviewNotes,
+} from "@/features/dashboard/components/pull-request-review-dialog";
 import { SyncPullRequestsButton } from "@/features/dashboard/components/sync-pull-requests-button";
 import { LoadingState } from "@/components/ui/loading-state";
 import {
@@ -178,6 +183,15 @@ export function PullRequestsTableClient({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [linkFilter, setLinkFilter] = useState("all");
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selectedPullRequest, setSelectedPullRequest] = useState<{
+    id: string;
+    title: string;
+    repoFullName: string;
+    prNumber: number;
+    reviewComment: string | null;
+    status: string;
+  } | null>(null);
 
   const { data, isLoading } = trpc.review.list.useQuery(undefined, {
     refetchInterval: (query) => {
@@ -360,12 +374,39 @@ export function PullRequestsTableClient({
                     </span>
                   </div>
 
-                  <div className="min-w-0">
+                  <ClickableReviewSection
+                    className="-mx-1 px-1 py-0.5"
+                    title={
+                      pullRequestHasReviewNotes(
+                        pullRequest.reviewComment,
+                        pullRequest.status,
+                      )
+                        ? "View AI review details"
+                        : "View PR details"
+                    }
+                    onClick={() => {
+                      setSelectedPullRequest({
+                        id: pullRequest.id,
+                        title: pullRequest.title,
+                        repoFullName: pullRequest.repoFullName,
+                        prNumber: pullRequest.prNumber,
+                        reviewComment: pullRequest.reviewComment,
+                        status: pullRequest.status,
+                      });
+                      setReviewDialogOpen(true);
+                    }}
+                  >
                     <p
                       className="truncate text-sm font-medium"
                       title={pullRequest.title}
                     >
                       {pullRequest.title}
+                      {pullRequestHasReviewNotes(
+                        pullRequest.reviewComment,
+                        pullRequest.status,
+                      ) ? (
+                        <span className="sr-only"> — click to view review</span>
+                      ) : null}
                     </p>
                     <p
                       className="mt-0.5 truncate text-xs text-muted-foreground"
@@ -394,6 +435,7 @@ export function PullRequestsTableClient({
                         href={`${DASHBOARD_BASE_PATH}/feature-requests/${pullRequest.featureRequest.id}`}
                         className="mt-0.5 block truncate text-xs text-primary hover:underline"
                         title={pullRequest.featureRequest.title}
+                        onClick={(event) => event.stopPropagation()}
                       >
                         {pullRequest.featureRequest.title}
                       </Link>
@@ -402,7 +444,7 @@ export function PullRequestsTableClient({
                         Unlinked
                       </span>
                     )}
-                  </div>
+                  </ClickableReviewSection>
 
                   <div className="flex min-w-0 flex-col items-end gap-2">
                     <ReviewStatusCell
@@ -425,6 +467,18 @@ export function PullRequestsTableClient({
           </div>
         </AutoHideScroll>
       )}
+
+      {selectedPullRequest ? (
+        <PullRequestReviewDialog
+          open={reviewDialogOpen}
+          onOpenChange={setReviewDialogOpen}
+          title={selectedPullRequest.title}
+          repoFullName={selectedPullRequest.repoFullName}
+          prNumber={selectedPullRequest.prNumber}
+          reviewComment={selectedPullRequest.reviewComment}
+          status={selectedPullRequest.status}
+        />
+      ) : null}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { countConnectedRepositories } from "@repo/services";
 
 export type OverviewReviewItem = {
   id: string;
+  pullRequestId: string;
   repository: string;
   pullRequest: string;
   prNumber: number;
@@ -95,6 +96,7 @@ export async function getOverviewData(
         include: {
           pullRequest: {
             select: {
+              id: true,
               repoFullName: true,
               prNumber: true,
               title: true,
@@ -108,6 +110,7 @@ export async function getOverviewData(
       }).then((rows) =>
         rows.map((review) => ({
           id: review.id,
+          pullRequestId: review.pullRequest.id,
           repository: review.pullRequest.repoFullName,
           pullRequest: review.pullRequest.title,
           prNumber: review.pullRequest.prNumber,

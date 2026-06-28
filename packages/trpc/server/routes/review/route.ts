@@ -91,6 +91,7 @@ export const reviewRouter = router({
       include: {
         pullRequest: {
           select: {
+            id: true,
             repoFullName: true,
             prNumber: true,
             title: true,
@@ -163,6 +164,40 @@ export const reviewRouter = router({
         linesChanged: pullRequest.linesChanged,
         source: pullRequest.source,
         latestReview: pullRequest.aiReviews[0] ?? null,
+      };
+    }),
+
+  getPullRequestReviewDetail: protectedProcedure
+    .input(z.object({ pullRequestId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const installation = await requireInstallation(ctx);
+
+      const pullRequest = await prisma.pullRequest.findFirst({
+        where: {
+          id: input.pullRequestId,
+          installationId: installation.installationId,
+        },
+        select: {
+          id: true,
+          title: true,
+          repoFullName: true,
+          prNumber: true,
+          reviewComment: true,
+          status: true,
+        },
+      });
+
+      if (!pullRequest) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Pull request not found." });
+      }
+
+      return {
+        id: pullRequest.id,
+        title: pullRequest.title,
+        repoFullName: pullRequest.repoFullName,
+        prNumber: pullRequest.prNumber,
+        reviewComment: pullRequest.reviewComment,
+        status: pullRequest.status,
       };
     }),
 
