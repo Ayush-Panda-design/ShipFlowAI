@@ -116,11 +116,10 @@ export async function syncInstallationForUser(userId: string) {
     );
   }
 
-  const personal = installations.find(
-    (installation) =>
-      installation.account?.type === "User" &&
-      String(installation.account.id) === githubAccount.accountId,
-  );
+  const personal = installations.find((installation) => {
+    const accountId = installation.account?.id;
+    return accountId != null && String(accountId) === githubAccount.accountId;
+  });
 
   const match = personal ?? (installations.length === 1 ? installations[0]! : null);
 
