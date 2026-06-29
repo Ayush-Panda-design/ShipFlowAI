@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getInstallationForUser } from "@/features/github/server/installation";
-import { syncConnectedRepositories } from "@/features/reviews/server/sync-github-worker";
+import {
+  buildSyncFailureMessage,
+  syncConnectedRepositories,
+} from "@/features/reviews/server/sync-github-worker";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/db";
 import {
@@ -49,11 +52,12 @@ export async function POST() {
   }
 
   const connected = await listConnectedRepositoriesForWorkspace(workspaceId);
+  const activeInstallationId = installation.installationId;
   const repoByName = new Map<string, { full_name: string; installationId: number }>();
   for (const repo of connected) {
     repoByName.set(repo.repoFullName, {
       full_name: repo.repoFullName,
-      installationId: repo.installationId,
+      installationId: activeInstallationId,
     });
   }
   const repositories = [...repoByName.values()];
@@ -81,10 +85,21 @@ export async function POST() {
   try {
     const result = await syncConnectedRepositories(repositories, syncRun.id);
 
+    const failureMessage = buildSyncFailureMessage({
+      failedRepos: result.failedRepos,
+      totalRepos: result.totalRepos,
+      repoFailures: result.repoFailures,
+    });
+
     if (result.failedRepos === result.totalRepos && result.totalRepos > 0) {
       throw new Error(
-        "GitHub sync failed for every connected repository. Check the GitHub App connection.",
+        failureMessage ??
+          "GitHub sync failed for every connected repository. Reconnect the GitHub App, then disconnect and reconnect each repo on the Repositories page.",
       );
+    }
+
+    if (failureMessage) {
+      console.warn("[github/sync] partial repo failures:", failureMessage);
     }
 
     await touchSyncRun(syncRun.id, {

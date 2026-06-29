@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Mail, Phone, Ticket } from "lucide-react";
+import { ArrowRight, Mail, Phone, Ticket } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
 import { trpc } from "@/trpc/client";
 
@@ -25,10 +28,10 @@ const sources = [
 
 type IntakePageClientProps = {
   projectId: string;
-  workspaceId: string;
+  projectName: string;
 };
 
-export function IntakePageClient({ projectId, workspaceId }: IntakePageClientProps) {
+export function IntakePageClient({ projectId, projectName }: IntakePageClientProps) {
   const router = useRouter();
   const [source, setSource] = useState<(typeof sources)[number]["id"]>("email");
   const [title, setTitle] = useState("");
@@ -36,65 +39,92 @@ export function IntakePageClient({ projectId, workspaceId }: IntakePageClientPro
 
   const createMutation = trpc.featureRequest.create.useMutation({
     onSuccess: (feature) => {
-      toast.success("Intake received — AI clarification is starting");
+      toast.success("Request received", {
+        description: "ShipFlow is starting AI clarification now.",
+      });
       router.push(`/dashboard/feature-requests/${feature.id}`);
     },
     onError: (error) => toast.error(error.message),
   });
 
+  const canSubmit =
+    title.trim().length >= 3 && description.trim().length >= 10 && !createMutation.isPending;
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Customer intake</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Simulate email, support ticket, or call intake. ShipFlow creates a feature
-          request and automatically starts AI clarification.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Customer intake</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Log what a customer asked for by email, support ticket, or call. ShipFlow
+            turns it into a feature request and starts clarifying the requirements with
+            AI.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" className="shrink-0" asChild>
+          <Link href={`${DASHBOARD_BASE_PATH}/feature-requests`}>
+            All requests
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>New intake</CardTitle>
+          <CardTitle>New customer request</CardTitle>
           <CardDescription>
-            Workspace-linked project intake for demo and external API parity.
+            Added to project <span className="font-medium text-foreground">{projectName}</span>
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {sources.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Button
-                  key={item.id}
-                  type="button"
-                  size="sm"
-                  variant={source === item.id ? "default" : "outline"}
-                  onClick={() => setSource(item.id)}
-                >
-                  <Icon className="size-4" />
-                  {item.label}
-                </Button>
-              );
-            })}
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <Label>How did this arrive?</Label>
+            <div className="flex flex-wrap gap-2">
+              {sources.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Button
+                    key={item.id}
+                    type="button"
+                    size="sm"
+                    variant={source === item.id ? "default" : "outline"}
+                    onClick={() => setSource(item.id)}
+                  >
+                    <Icon className="size-4" />
+                    {item.label}
+                  </Button>
+                );
+              })}
+            </div>
           </div>
 
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Customer request title"
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-          />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What did the customer ask for?"
-            className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm"
-          />
+          <div className="space-y-2">
+            <Label htmlFor="intake-title">Short summary</Label>
+            <Input
+              id="intake-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Export reports to CSV"
+              maxLength={200}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="intake-description">What did they ask for?</Label>
+            <Textarea
+              id="intake-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Paste the email, ticket notes, or call summary here…"
+              className="min-h-32"
+            />
+            <p className="text-xs text-muted-foreground">
+              A few sentences is enough — AI will ask follow-up questions if needed.
+            </p>
+          </div>
 
           <Button
-            disabled={
-              createMutation.isPending || title.trim().length < 3 || description.trim().length < 10
-            }
+            disabled={!canSubmit}
             onClick={() =>
               createMutation.mutate({
                 projectId,
@@ -104,28 +134,8 @@ export function IntakePageClient({ projectId, workspaceId }: IntakePageClientPro
               })
             }
           >
-            Submit intake
+            {createMutation.isPending ? "Submitting…" : "Submit request"}
           </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">External intake API</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>
-            Production systems can POST to{" "}
-            <code className="rounded bg-muted px-1">/api/intake/feature-request</code> with
-            bearer auth and the same fields. Workspace id:{" "}
-            <code className="rounded bg-muted px-1">{workspaceId}</code>
-          </p>
-          <Link
-            href={`${DASHBOARD_BASE_PATH}/feature-requests`}
-            className="text-primary underline-offset-4 hover:underline"
-          >
-            View all feature requests
-          </Link>
         </CardContent>
       </Card>
     </div>

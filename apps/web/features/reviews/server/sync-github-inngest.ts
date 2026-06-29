@@ -5,7 +5,7 @@ import {
   listConnectedRepositoriesForWorkspace,
   touchSyncRun,
 } from "@repo/services";
-import { syncConnectedRepositories } from "@/features/reviews/server/sync-github-worker";
+import { syncConnectedRepositories, buildSyncFailureMessage } from "@/features/reviews/server/sync-github-worker";
 
 export const syncGitHubPullRequests = inngest.createFunction(
   {
@@ -26,7 +26,7 @@ export const syncGitHubPullRequests = inngest.createFunction(
         for (const repo of connected) {
           repoByName.set(repo.repoFullName, {
             full_name: repo.repoFullName,
-            installationId: repo.installationId,
+            installationId,
           });
         }
         const repos = [...repoByName.values()];
@@ -55,7 +55,12 @@ export const syncGitHubPullRequests = inngest.createFunction(
         result.totalRepos > 0
       ) {
         throw new Error(
-          "GitHub sync failed for every repository. Check the GitHub App connection.",
+          buildSyncFailureMessage({
+            failedRepos: result.failedRepos,
+            totalRepos: result.totalRepos,
+            repoFailures: result.repoFailures,
+          }) ??
+            "GitHub sync failed for every connected repository. Reconnect the GitHub App, then disconnect and reconnect each repo on the Repositories page.",
         );
       }
 

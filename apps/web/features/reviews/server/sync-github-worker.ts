@@ -38,6 +38,31 @@ export type RepoSyncResult = {
   prCount: number;
 };
 
+export type RepoSyncFailure = {
+  repoFullName: string;
+  message: string;
+};
+
+function formatGitHubApiError(error: unknown): string {
+  if (error && typeof error === "object") {
+    const err = error as {
+      status?: number;
+      message?: string;
+      response?: { data?: { message?: string } };
+    };
+    const detail =
+      err.response?.data?.message?.trim() || err.message?.trim() || "Unknown error";
+    if (err.status) {
+      return `${err.status}: ${detail}`;
+    }
+    return detail;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "Unknown error";
+}
+
 /** Get a shared octokit for a given installation — call once per sync, reuse everywhere. */
 export async function getInstallationOctokit(installationId: number) {
   const app = getGitHubApp();
@@ -96,6 +121,7 @@ export async function syncConnectedRepositories(
   let queued = 0;
   let failedRepos = 0;
   let totalRepos = repositories.length;
+  const repoFailures: RepoSyncFailure[] = [];
 
   for (const [installationId, repos] of byInstallation) {
     const result = await syncAllRepositories({
@@ -107,9 +133,10 @@ export async function syncConnectedRepositories(
     changed += result.changed;
     queued += result.queued;
     failedRepos += result.failedRepos;
+    repoFailures.push(...result.repoFailures);
   }
 
-  return { synced, changed, queued, failedRepos, totalRepos };
+  return { synced, changed, queued, failedRepos, totalRepos, repoFailures };
 }
 
 /** Sync all repos for an installation in parallel using a single shared octokit. */
@@ -118,7 +145,29 @@ export async function syncAllRepositories(input: {
   repositories: GitHubRepository[];
   syncRunId?: string;
 }) {
-  const octokit = await getInstallationOctokit(input.installationId);
+  const repoFailures: RepoSyncFailure[] = [];
+  let octokit: Octokit;
+
+  try {
+    octokit = await getInstallationOctokit(input.installationId);
+  } catch (error) {
+    const message = formatGitHubApiError(error);
+    for (const repository of input.repositories) {
+      repoFailures.push({
+        repoFullName: repository.full_name,
+        message,
+      });
+    }
+    return {
+      synced: 0,
+      changed: 0,
+      queued: 0,
+      failedRepos: input.repositories.length,
+      totalRepos: input.repositories.length,
+      repoFailures,
+    };
+  }
+
   const canQueueReviews = isReviewPipelineConfigured();
   const repoLimit = pLimit(getGitHubSyncRepoConcurrency());
 
@@ -152,8 +201,12 @@ export async function syncAllRepositories(input: {
           totalSynced += result.synced;
           totalChanged += result.changed;
           allReviewPayloads.push(...result.reviewPayloads);
-        } catch {
+        } catch (error) {
           failedRepos += 1;
+          repoFailures.push({
+            repoFullName: repository.full_name,
+            message: formatGitHubApiError(error),
+          });
         } finally {
           if (input.syncRunId) {
             void touchSyncRun(input.syncRunId, {
@@ -188,7 +241,45 @@ export async function syncAllRepositories(input: {
     queued: totalQueued,
     failedRepos,
     totalRepos: input.repositories.length,
+    repoFailures,
   };
+}
+
+export function buildSyncFailureMessage(input: {
+  failedRepos: number;
+  totalRepos: number;
+  repoFailures: RepoSyncFailure[];
+}) {
+  if (input.failedRepos === 0) {
+    return null;
+  }
+
+  if (input.failedRepos < input.totalRepos) {
+    const preview = input.repoFailures
+      .slice(0, 2)
+      .map((f) => `${f.repoFullName} (${f.message})`)
+      .join("; ");
+    const suffix =
+      input.repoFailures.length > 2
+        ? ` (+${input.repoFailures.length - 2} more)`
+        : "";
+    return `GitHub sync failed for ${input.failedRepos} of ${input.totalRepos} repos: ${preview}${suffix}`;
+  }
+
+  const preview = input.repoFailures
+    .slice(0, 3)
+    .map((f) => `${f.repoFullName} (${f.message})`)
+    .join("; ");
+  const suffix =
+    input.repoFailures.length > 3
+      ? ` (+${input.repoFailures.length - 3} more)`
+      : "";
+
+  if (preview) {
+    return `GitHub sync failed for every connected repo: ${preview}${suffix}`;
+  }
+
+  return "GitHub sync failed for every connected repository. Reconnect the GitHub App, then disconnect and reconnect each repo on the Repositories page.";
 }
 
 async function syncRepoWithOctokit(input: {
