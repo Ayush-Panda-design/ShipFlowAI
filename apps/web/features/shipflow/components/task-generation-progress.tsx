@@ -12,7 +12,7 @@ const PHASES = [
 ] as const;
 
 function phaseForElapsed(seconds: number) {
-  let current = PHASES[0];
+  let current: (typeof PHASES)[number] = PHASES[0];
   for (const phase of PHASES) {
     if (seconds >= phase.afterSec) current = phase;
   }

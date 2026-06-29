@@ -1,3 +1,5 @@
+import type { Octokit } from "octokit";
+
 import { getGitHubApp } from "@/features/github/utils/github-app";
 
 type RepoContext = {
@@ -16,7 +18,7 @@ function parseFullName(repoFullName: string) {
 }
 
 async function safeGetContent(
-  octokit: Awaited<ReturnType<ReturnType<typeof getGitHubApp>["getInstallationOctokit"]>>,
+  octokit: Octokit,
   owner: string,
   repo: string,
   path: string,

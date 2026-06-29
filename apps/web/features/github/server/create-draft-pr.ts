@@ -1,3 +1,5 @@
+import type { Octokit } from "octokit";
+
 import { getGitHubApp } from "@/features/github/utils/github-app";
 
 function parseRepoFullName(repoFullName: string) {
@@ -13,7 +15,7 @@ function parseRepoFullName(repoFullName: string) {
  * timestamp so we get a unique name instead of failing the whole codegen job.
  */
 async function ensureUniqueBranch(
-  octokit: Awaited<ReturnType<ReturnType<typeof getGitHubApp>["getInstallationOctokit"]>>,
+  octokit: Octokit,
   owner: string,
   repo: string,
   branchName: string,

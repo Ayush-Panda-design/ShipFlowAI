@@ -54,7 +54,7 @@ export async function runClarifyJob(featureRequestId: string) {
   const questions = await generateClarificationQuestions(
     feature.title,
     feature.description,
-    similarContext,
+    { similarFeaturesContext: similarContext },
   );
 
   await addClarification(featureRequestId, "assistant", questions);
