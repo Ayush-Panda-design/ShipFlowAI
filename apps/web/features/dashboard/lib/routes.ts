@@ -56,7 +56,7 @@ export const dashboardRoutes: DashboardRoute[] = [
     title: "Customer Intake",
     href: `${DASHBOARD_BASE_PATH}/intake`,
     icon: Inbox,
-    description: "Email, ticket, and call intake demo",
+    description: "Log customer requests from email, tickets, or calls",
   },
   {
     title: "PRD Editor",

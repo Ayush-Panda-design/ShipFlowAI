@@ -1,4 +1,14 @@
+import Link from "next/link";
+
 import { IntakePageClient } from "@/features/dashboard/components/intake-page-client";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
 import { getActiveProjectForWorkspace } from "@/lib/active-project";
 import { requireSession } from "@/lib/auth-session";
@@ -15,13 +25,21 @@ export default async function IntakePage() {
   const project = activeProject ?? projects[0];
   if (!project) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Create a project first, then return to customer intake.
-      </p>
+      <Empty className="border border-dashed">
+        <EmptyHeader>
+          <EmptyTitle>Create a project first</EmptyTitle>
+          <EmptyDescription>
+            Customer intake needs a project to attach new requests to.
+          </EmptyDescription>
+        </EmptyHeader>
+        <Button asChild>
+          <Link href={`${DASHBOARD_BASE_PATH}/projects`}>Go to projects</Link>
+        </Button>
+      </Empty>
     );
   }
 
   return (
-    <IntakePageClient projectId={project.id} workspaceId={workspace.id} />
+    <IntakePageClient projectId={project.id} projectName={project.name} />
   );
 }

@@ -1,31 +1,10 @@
 import { prisma } from "@repo/database";
 import { SYNC_NO_PROGRESS_MS, SYNC_STALE_MS } from "./constants";
+import { friendlySyncError } from "./sync-errors";
 
 export type SyncRunStatus = "running" | "completed" | "failed";
 
-export function friendlySyncError(raw?: string | null) {
-  if (!raw) {
-    return "Sync couldn't finish. Please try again in a moment.";
-  }
-
-  if (/timed out/i.test(raw)) {
-    return "Sync took too long and was stopped. Please try again.";
-  }
-
-  if (/(could not start|inngest|background sync)/i.test(raw)) {
-    return "Background sync didn't start. If you're on localhost, run pnpm inngest:dev in a second terminal, then try again.";
-  }
-
-  if (/(rate limit|secondary rate)/i.test(raw)) {
-    return "GitHub rate limit reached. Wait a minute, then try again.";
-  }
-
-  if (/(not connected|installation|token|credential|auth)/i.test(raw)) {
-    return "We couldn't reach GitHub. Reconnect the GitHub App and try again.";
-  }
-
-  return "Sync couldn't finish. Please try again in a moment.";
-}
+export { friendlySyncError } from "./sync-errors";
 
 export function buildSyncStatusMessage(syncRun: {
   status: string;

@@ -9,6 +9,7 @@ import { LoadingIllustration } from "@/components/ui/loading-illustration";
 import { trpc } from "@/trpc/client";
 import { cn } from "@/lib/utils";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
+import { friendlySyncError } from "@repo/services/sync-errors";
 
 type SyncStatus = {
   id: string;
@@ -40,22 +41,6 @@ const STARTING_SYNC_STATUS: SyncStatus = {
   errorMessage: null,
   message: "Connecting to GitHub…",
 };
-
-function friendlySyncError(raw?: string | null) {
-  if (raw && /timed out/i.test(raw)) {
-    return "Sync took too long and was stopped. Please try again.";
-  }
-  if (raw && /(could not start|inngest|background sync)/i.test(raw)) {
-    return "Background sync didn't start. Run pnpm inngest:dev in a second terminal, then try again.";
-  }
-  if (raw && /(rate limit|secondary rate)/i.test(raw)) {
-    return "GitHub rate limit reached. Wait a minute, then try again.";
-  }
-  if (raw && /(not connected|installation|token|credential|auth)/i.test(raw)) {
-    return "We couldn't reach GitHub. Reconnect the GitHub App and try again.";
-  }
-  return "Sync couldn't finish. Please try again in a moment.";
-}
 
 function formatRunningText(status: SyncStatus) {
   if (status.id === "__starting__" || status.totalRepos === 0) {
@@ -191,7 +176,7 @@ export function SyncPullRequestsButton({
         error?: string;
       } | null;
 
-      if (!response.ok || !body?.status) {
+      if (!body?.status) {
         throw new Error(body?.error ?? "Sync failed");
       }
 
@@ -205,7 +190,10 @@ export function SyncPullRequestsButton({
           toast.success(body.status.message);
         }
       } else if (body.status.status === "failed") {
-        toast.error(friendlySyncError(body.status.errorMessage));
+        const message =
+          body.status.message ??
+          friendlySyncError(body.status.errorMessage);
+        toast.error(message);
       }
     } catch (error) {
       const message =
