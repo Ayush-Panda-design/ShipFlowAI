@@ -24,7 +24,7 @@ export default async function DashboardLayout({
       }))}
       activeWorkspaceId={activeWorkspace.id}
     >
-      <GitHubSetupBanner userId={session.user.id} status={githubStatus} />
+      <GitHubSetupBanner status={githubStatus} />
       {children}
     </DashboardShell>
   );

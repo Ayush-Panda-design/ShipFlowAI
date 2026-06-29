@@ -1,6 +1,10 @@
 import { GitHubConnectCard } from "@/features/dashboard/components/github-connect-card";
-import { getInstallationForUser } from "@/features/github/server/installation";
+import {
+  getInstallationForUser,
+  tryAutoLinkGitHubInstallation,
+} from "@/features/github/server/installation";
 import { requireSession } from "@/lib/auth-session";
+import { prisma } from "@/lib/db";
 
 type GitHubAppPageProps = {
   searchParams: Promise<{ error?: string }>;
@@ -9,11 +13,23 @@ type GitHubAppPageProps = {
 export default async function GitHubAppPage({ searchParams }: GitHubAppPageProps) {
   const session = await requireSession("/dashboard/github-app");
   const { error } = await searchParams;
-  const installation = await getInstallationForUser(session.user.id);
+
+  let installation = await getInstallationForUser(session.user.id);
+  if (!installation) {
+    installation = await tryAutoLinkGitHubInstallation(session.user.id);
+  }
+
+  const signedInWithGitHub = Boolean(
+    await prisma.account.findFirst({
+      where: { userId: session.user.id, providerId: "github" },
+      select: { id: true },
+    }),
+  );
 
   return (
     <GitHubConnectCard
       userId={session.user.id}
+      signedInWithGitHub={signedInWithGitHub}
       installation={
         installation
           ? {
