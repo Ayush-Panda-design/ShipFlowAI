@@ -14,8 +14,7 @@ import {
   getGitHubAppConfigError,
   getGitHubInstallUrl,
 } from "@/features/github/utils/github-app";
-import { Input } from "@/components/ui/input";
-import { disconnectGitHubApp, linkGitHubInstallation, linkGitHubInstallationById } from "@/lib/actions/github";
+import { disconnectGitHubApp, linkGitHubInstallation } from "@/lib/actions/github";
 import { cn } from "@/lib/utils";
 
 type GitHubConnectCardProps = {
@@ -32,7 +31,9 @@ const errorMessages: Record<string, string> = {
   invalid_state: "Installation state did not match your account. Try again.",
   save_failed: "Could not save the GitHub App installation. Check your app credentials.",
   link_failed:
-    "Could not link the installation. Verify GITHUB_APP_ID is the numeric App ID from GitHub App settings (not Client ID) and that GITHUB_APP_PRIVATE_KEY matches the same app. Restart the dev server after editing .env.",
+    "Could not link your GitHub App installation. Sign in with GitHub, install the app on your account, then try again.",
+  wrong_github_account:
+    "That installation belongs to a different GitHub account. Sign in with your GitHub account, click Install on GitHub, and select only your repositories.",
   invalid_installation_id: "Enter a valid installation ID from your GitHub installation URL.",
 };
 
@@ -98,40 +99,27 @@ export function GitHubConnectCard({
         ) : canInstall && installUrl ? (
           <div className="flex flex-col gap-4 rounded-xl border border-dashed border-border/60 p-6 text-center">
             <p className="text-sm text-muted-foreground">
-              If you already installed the app on GitHub, link it to this
-              dashboard account. Otherwise, install it first.
+              Install the app on <strong>your own</strong> GitHub account and
+              select the repositories you want ShipFlow to access.
             </p>
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <form action={linkGitHubInstallation}>
-                <Button type="submit">
-                  <Plug />
-                  Link existing installation
-                </Button>
-              </form>
               <a
                 href={installUrl}
-                className={buttonVariants({ variant: "outline", className: "w-fit" })}
+                className={buttonVariants({ className: "w-fit" })}
               >
                 Install on GitHub
               </a>
+              <form action={linkGitHubInstallation}>
+                <Button type="submit" variant="outline">
+                  <Plug />
+                  Link my installation
+                </Button>
+              </form>
             </div>
-            <form
-              action={linkGitHubInstallationById}
-              className="mx-auto flex w-full max-w-sm flex-col gap-2 sm:flex-row"
-            >
-              <Input
-                name="installationId"
-                placeholder="Installation ID (e.g. 142268534)"
-                inputMode="numeric"
-                required
-              />
-              <Button type="submit" variant="secondary" className="shrink-0">
-                Link by ID
-              </Button>
-            </form>
             <p className="text-xs text-muted-foreground">
-              Installation ID is in your GitHub URL:{" "}
-              <code className="text-xs">github.com/settings/installations/142268534</code>
+              You must sign in with GitHub. ShipFlow only connects repositories
+              from the GitHub account you used to log in — never another
+              person&apos;s repos.
             </p>
           </div>
         ) : (

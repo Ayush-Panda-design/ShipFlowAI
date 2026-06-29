@@ -11,6 +11,20 @@ import {
 } from "@/features/github/server/installation";
 import { requireSession } from "@/lib/auth-session";
 
+function redirectWithGitHubError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+  if (
+    message.includes("not on your github account") ||
+    message.includes("sign in with github") ||
+    message.includes("cannot access someone else")
+  ) {
+    redirect(`${DASHBOARD_BASE_PATH}/github-app?error=wrong_github_account`);
+  }
+
+  redirect(`${DASHBOARD_BASE_PATH}/github-app?error=${fallback}`);
+}
+
 export async function linkGitHubInstallation() {
   const session = await requireSession();
 
@@ -20,7 +34,7 @@ export async function linkGitHubInstallation() {
     if (process.env.NODE_ENV === "development") {
       console.error("[github/link] failed:", error);
     }
-    redirect(`${DASHBOARD_BASE_PATH}/github-app?error=link_failed`);
+    redirectWithGitHubError(error, "link_failed");
   }
 
   revalidatePath(`${DASHBOARD_BASE_PATH}/github-app`);
@@ -43,7 +57,7 @@ export async function linkGitHubInstallationById(formData: FormData) {
     if (process.env.NODE_ENV === "development") {
       console.error("[github/link-by-id] failed:", error);
     }
-    redirect(`${DASHBOARD_BASE_PATH}/github-app?error=link_failed`);
+    redirectWithGitHubError(error, "link_failed");
   }
 
   revalidatePath(`${DASHBOARD_BASE_PATH}/github-app`);

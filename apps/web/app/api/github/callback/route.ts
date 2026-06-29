@@ -37,9 +37,15 @@ export async function GET(request: NextRequest) {
     if (process.env.NODE_ENV === "development") {
       console.error("[github/callback] save failed:", error);
     }
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    const errorCode =
+      message.includes("not on your github account") ||
+      message.includes("cannot access someone else")
+        ? "wrong_github_account"
+        : "save_failed";
     return NextResponse.redirect(
       new URL(
-        `${DASHBOARD_BASE_PATH}/github-app?error=save_failed`,
+        `${DASHBOARD_BASE_PATH}/github-app?error=${errorCode}`,
         request.url
       )
     );

@@ -1,16 +1,84 @@
+import { Octokit } from "octokit";
+
 import { getGitHubApp } from "@/features/github/utils/github-app";
 import { prisma } from "@/lib/db";
 
+async function getGitHubOAuthAccount(userId: string) {
+  return prisma.account.findFirst({
+    where: { userId, providerId: "github" },
+    select: { accountId: true, accessToken: true },
+  });
+}
+
+async function listInstallationsAccessibleToUser(userId: string) {
+  const githubAccount = await getGitHubOAuthAccount(userId);
+
+  if (!githubAccount?.accountId) {
+    throw new Error(
+      "Sign in with GitHub first, then install the GitHub App on your account.",
+    );
+  }
+
+  if (!githubAccount.accessToken) {
+    throw new Error(
+      "GitHub access expired. Sign out and sign in with GitHub again, then reconnect the app.",
+    );
+  }
+
+  const appId = process.env.GITHUB_APP_ID?.trim();
+  if (!appId) {
+    throw new Error("GITHUB_APP_ID is not configured");
+  }
+
+  const userOctokit = new Octokit({ auth: githubAccount.accessToken });
+  const installations = await userOctokit.paginate(
+    userOctokit.rest.apps.listInstallationsForAuthenticatedUser,
+    { per_page: 100 },
+  );
+
+  return {
+    githubAccount,
+    installations: installations.filter(
+      (installation) => String(installation.app_id) === appId,
+    ),
+  };
+}
+
+async function assertUserOwnsInstallation(userId: string, installationId: number) {
+  const { installations } = await listInstallationsAccessibleToUser(userId);
+  const owned = installations.some((installation) => installation.id === installationId);
+
+  if (!owned) {
+    throw new Error(
+      "This GitHub App installation is not on your GitHub account. Install the app on your own account — you cannot access someone else's repositories.",
+    );
+  }
+}
+
 export async function getInstallationForUser(userId: string) {
-  return prisma.gitHubInstallation.findUnique({
+  const installation = await prisma.gitHubInstallation.findUnique({
     where: { userId },
   });
+
+  if (!installation) {
+    return null;
+  }
+
+  try {
+    await assertUserOwnsInstallation(userId, installation.installationId);
+    return installation;
+  } catch {
+    await deleteInstallationForUser(userId);
+    return null;
+  }
 }
 
 export async function saveInstallationFromGitHub(
   userId: string,
-  installationId: number
+  installationId: number,
 ) {
+  await assertUserOwnsInstallation(userId, installationId);
+
   const app = getGitHubApp();
   const octokit = await app.getInstallationOctokit(installationId);
   const { data } = await octokit.rest.apps.getInstallation({
@@ -39,48 +107,25 @@ export async function saveInstallationFromGitHub(
 }
 
 export async function syncInstallationForUser(userId: string) {
-  const app = getGitHubApp();
-  const installations = await app.octokit.paginate(
-    app.octokit.rest.apps.listInstallations,
-    { per_page: 100 }
-  );
+  const { githubAccount, installations } =
+    await listInstallationsAccessibleToUser(userId);
 
   if (installations.length === 0) {
     throw new Error(
-      "No GitHub App installations found. Install the app on GitHub first."
+      "No GitHub App installation found on your GitHub account. Click Install on GitHub and choose your account.",
     );
   }
 
-  const githubAccount = await prisma.account.findFirst({
-    where: { userId, providerId: "github" },
-  });
-
-  let match = installations.find((installation) => {
+  const personal = installations.find((installation) => {
     const accountId = installation.account?.id;
-    if (!accountId || !githubAccount) {
-      return false;
-    }
-
-    return String(accountId) === githubAccount.accountId;
+    return accountId != null && String(accountId) === githubAccount.accountId;
   });
 
-  if (!match) {
-    const orgInstallations = installations.filter(
-      (installation) => installation.account?.type === "Organization"
-    );
-
-    if (orgInstallations.length === 1) {
-      match = orgInstallations[0];
-    }
-  }
-
-  if (!match && installations.length === 1) {
-    match = installations[0];
-  }
+  const match = personal ?? (installations.length === 1 ? installations[0]! : null);
 
   if (!match) {
     throw new Error(
-      "Could not match your account to a GitHub App installation. Try installing again from this page."
+      "Multiple GitHub App installations found. Open GitHub → Settings → Applications and use the installation for your personal account.",
     );
   }
 
