@@ -46,6 +46,7 @@ export function OverviewRecentReviews({
             onClick={() =>
               openReview({
                 pullRequestId: review.pullRequestId,
+                reviewId: review.id,
                 title: review.pullRequest,
                 repoFullName: review.repository,
                 prNumber: review.prNumber,

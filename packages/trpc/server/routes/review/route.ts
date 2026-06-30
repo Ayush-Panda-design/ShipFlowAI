@@ -2,6 +2,8 @@ import { z } from "zod";
 import {
   AI_CREDIT_COSTS,
   assertHasCredits,
+  buildReviewMarkdownFromAIReview,
+  isStoredReviewComment,
   listPullRequestsForInstallation,
   parseReviewFindings,
   recordFindingFeedback,
@@ -169,7 +171,12 @@ export const reviewRouter = router({
     }),
 
   getPullRequestReviewDetail: protectedProcedure
-    .input(z.object({ pullRequestId: z.string() }))
+    .input(
+      z.object({
+        pullRequestId: z.string(),
+        reviewId: z.string().optional(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const installation = await requireInstallation(ctx);
 
@@ -185,6 +192,7 @@ export const reviewRouter = router({
           prNumber: true,
           reviewComment: true,
           status: true,
+          featureRequestId: true,
         },
       });
 
@@ -192,12 +200,42 @@ export const reviewRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Pull request not found." });
       }
 
+      let reviewComment = isStoredReviewComment(pullRequest.reviewComment)
+        ? pullRequest.reviewComment
+        : null;
+
+      if (!reviewComment) {
+        const aiReview = input.reviewId
+          ? await prisma.aIReview.findFirst({
+              where: {
+                id: input.reviewId,
+                pullRequestId: pullRequest.id,
+              },
+            })
+          : await prisma.aIReview.findFirst({
+              where: { pullRequestId: pullRequest.id },
+              orderBy: { createdAt: "desc" },
+            });
+
+        if (aiReview) {
+          reviewComment = buildReviewMarkdownFromAIReview({
+            summary: aiReview.summary,
+            findings: aiReview.findings,
+            blockingCount: aiReview.blockingCount,
+            nonBlockingCount: aiReview.nonBlockingCount,
+            confidenceScore: aiReview.confidenceScore,
+            prdAlignment: aiReview.prdAlignment,
+            featureRequestId: pullRequest.featureRequestId,
+          });
+        }
+      }
+
       return {
         id: pullRequest.id,
         title: pullRequest.title,
         repoFullName: pullRequest.repoFullName,
         prNumber: pullRequest.prNumber,
-        reviewComment: pullRequest.reviewComment,
+        reviewComment,
         status: pullRequest.status,
       };
     }),

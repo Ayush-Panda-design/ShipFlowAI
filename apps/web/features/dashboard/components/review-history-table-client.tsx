@@ -156,6 +156,7 @@ export function ReviewHistoryTableClient() {
                   onClick={() =>
                     openReview({
                       pullRequestId: review.pullRequest.id,
+                      reviewId: review.id,
                       title: review.pullRequest.title,
                       repoFullName: review.pullRequest.repoFullName,
                       prNumber: review.pullRequest.prNumber,

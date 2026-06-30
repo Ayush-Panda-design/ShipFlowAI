@@ -6,7 +6,8 @@
   "exports": {
     ".": "./index.ts",
     "./constants": "./constants.ts",
-    "./sync-errors": "./sync-errors.ts"
+    "./sync-errors": "./sync-errors.ts",
+    "./review/comment-utils": "./review/comment-utils.ts"
   },
   "dependencies": {
     "@repo/database": "workspace:*",

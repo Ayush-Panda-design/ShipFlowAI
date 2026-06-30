@@ -1,6 +1,10 @@
 import { prisma } from "@repo/database";
 
-import type { ReviewFindingInput } from "../review-rules";
+export {
+  buildReviewMarkdownFromAIReview,
+  isStoredReviewComment,
+  parseReviewFindings,
+} from "./comment-utils";
 
 export async function listPullRequestsForInstallation(installationId: number) {
   return prisma.pullRequest.findMany({
@@ -39,47 +43,4 @@ export async function listPullRequestsForInstallation(installationId: number) {
     },
     orderBy: { updatedAt: "desc" },
   });
-}
-
-export function parseReviewFindings(raw: string): ReviewFindingInput[] {
-  try {
-    const parsed = JSON.parse(raw) as Array<{
-      id?: string;
-      severity?: string;
-      category?: string;
-      title?: string;
-      description?: string;
-      filePath?: string;
-      confidence?: number;
-      codeSuggestion?: string;
-    }>;
-
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.flatMap((item, index) => {
-      if (!item.title || !item.description) {
-        return [];
-      }
-
-      const severity: ReviewFindingInput["severity"] =
-        item.severity === "blocking" ? "blocking" : "non_blocking";
-
-      return [
-        {
-          id: item.id ?? `finding-${index + 1}`,
-          severity,
-          category: item.category ?? "general",
-          title: item.title,
-          description: item.description,
-          filePath: item.filePath,
-          confidence: item.confidence,
-          codeSuggestion: item.codeSuggestion,
-        },
-      ];
-    });
-  } catch {
-    return [];
-  }
 }

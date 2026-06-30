@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ReviewCommentBody } from "@/features/reviews/components/review-comment-body";
+import { isStoredReviewComment } from "@repo/services/review/comment-utils";
 import { cn } from "@/lib/utils";
 
 export type PullRequestReviewDialogProps = {
@@ -25,26 +26,11 @@ export type PullRequestReviewDialogProps = {
   reviewComment: string | null;
   status: string;
   isLoading?: boolean;
+  loadError?: boolean;
 };
 
 function githubPullRequestUrl(repoFullName: string, prNumber: number) {
   return `https://github.com/${repoFullName}/pull/${prNumber}`;
-}
-
-function isReviewContent(comment: string | null) {
-  if (!comment) {
-    return false;
-  }
-
-  if (comment.startsWith("Review in progress:") || comment.startsWith("Review failed:")) {
-    return false;
-  }
-
-  return (
-    comment.includes("ShipFlow AI Review") ||
-    comment.includes("**Summary:**") ||
-    comment.includes("**Findings:**")
-  );
 }
 
 export function PullRequestReviewDialog({
@@ -56,9 +42,10 @@ export function PullRequestReviewDialog({
   reviewComment,
   status,
   isLoading = false,
+  loadError = false,
 }: PullRequestReviewDialogProps) {
   const githubUrl = githubPullRequestUrl(repoFullName, prNumber);
-  const hasReview = isReviewContent(reviewComment);
+  const hasReview = isStoredReviewComment(reviewComment);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -77,6 +64,13 @@ export function PullRequestReviewDialog({
           {isLoading ? (
             <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
               Loading review…
+            </div>
+          ) : loadError ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-8 text-center">
+              <p className="text-sm font-medium">Could not load review notes</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Try again in a moment, or open this pull request on GitHub.
+              </p>
             </div>
           ) : hasReview && reviewComment ? (
             <ReviewCommentBody markdown={reviewComment} />
@@ -114,14 +108,11 @@ export function pullRequestHasReviewNotes(
   reviewComment: string | null,
   status: string,
 ) {
-  if (isReviewContent(reviewComment)) {
+  if (isStoredReviewComment(reviewComment)) {
     return true;
   }
 
-  return (
-    (status === "reviewed" || status === "completed") &&
-    Boolean(reviewComment && reviewComment.length > 40)
-  );
+  return status === "reviewed" || status === "completed";
 }
 
 export function ClickableReviewSection({
