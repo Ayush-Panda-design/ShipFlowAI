@@ -46,10 +46,15 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       <CardContent className="flex flex-col gap-6">
         {oauthError ? (
           <div
-            className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
             role="alert"
           >
-            {oauthError}
+            <p>{oauthError}</p>
+            <p className="text-xs text-destructive/80">
+              Using a different GitHub account? Sign out at github.com first, or
+              use a private/incognito window so GitHub does not reuse your other
+              login.
+            </p>
           </div>
         ) : null}
         <GithubSignInForm />
