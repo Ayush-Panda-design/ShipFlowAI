@@ -334,6 +334,7 @@ export async function connectRepositoryAction(
   repoFullName: string,
   installationId: number,
   defaultBranch?: string,
+  githubRepoId?: number,
 ) {
   const session = await requireSession();
   const workspace = await getActiveWorkspaceForUser(
@@ -355,6 +356,7 @@ export async function connectRepositoryAction(
     repoFullName,
     installationId,
     defaultBranch,
+    githubRepoId,
   });
 
   revalidatePath("/dashboard/repositories");

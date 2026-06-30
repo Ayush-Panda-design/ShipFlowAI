@@ -157,6 +157,7 @@ model ConnectedRepository {
   id             String   @id @default(cuid())
   projectId      String
   repoFullName   String
+  githubRepoId   Int?
   installationId Int
   defaultBranch  String   @default("main")
   createdAt      DateTime @default(now())
@@ -166,6 +167,7 @@ model ConnectedRepository {
   targetedFeatures FeatureRequest[] @relation("FeatureTargetRepo")
 
   @@unique([projectId, repoFullName])
+  @@index([githubRepoId])
   @@map("connected_repository")
 }
 

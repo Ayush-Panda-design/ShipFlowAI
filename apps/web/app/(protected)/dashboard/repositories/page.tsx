@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { ReposConnectPanel } from "@/features/dashboard/components/repos-connect-panel";
 import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
+import { reconcileRenamedRepositoriesForWorkspace } from "@/features/github/server/repo-rename-sync";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
 import { getInstallationForUser } from "@/features/github/server/installation";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
@@ -38,7 +39,6 @@ export default async function RepositoriesPage() {
   const workspace = await ensureWorkspaceAction();
   const installation = await getInstallationForUser(session.user.id);
   const project = await getOrCreateDefaultProject(workspace.id);
-  const connectedRepos = await listConnectedRepositoriesForWorkspace(workspace.id);
 
   if (!installation) {
     return (
@@ -61,6 +61,13 @@ export default async function RepositoriesPage() {
       </Card>
     );
   }
+
+  await reconcileRenamedRepositoriesForWorkspace(
+    workspace.id,
+    installation.installationId,
+  );
+
+  const connectedRepos = await listConnectedRepositoriesForWorkspace(workspace.id);
 
   return (
     <div className="flex flex-col gap-6">

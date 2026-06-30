@@ -8,6 +8,7 @@ export async function connectRepositoryToProject(input: {
   repoFullName: string;
   installationId: number;
   defaultBranch?: string;
+  githubRepoId?: number;
 }) {
   await assertWithinRepoLimit(input.workspaceId);
 
@@ -21,12 +22,14 @@ export async function connectRepositoryToProject(input: {
     create: {
       projectId: input.projectId,
       repoFullName: input.repoFullName,
+      githubRepoId: input.githubRepoId,
       installationId: input.installationId,
       defaultBranch: input.defaultBranch ?? "main",
     },
     update: {
       installationId: input.installationId,
       defaultBranch: input.defaultBranch ?? "main",
+      ...(input.githubRepoId != null ? { githubRepoId: input.githubRepoId } : {}),
     },
   });
 }

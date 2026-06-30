@@ -37,7 +37,12 @@ export function ReposConnectPanel({
   const { openReview, dialog } = usePullRequestReviewDialog();
   const connectedSet = new Set(connectedRepos.map((repo) => repo.repoFullName));
 
-  const toggleRepo = (repoFullName: string, defaultBranch: string, connected: boolean) => {
+  const toggleRepo = (
+    repoFullName: string,
+    defaultBranch: string,
+    githubRepoId: number,
+    connected: boolean,
+  ) => {
     startTransition(async () => {
       try {
         if (connected) {
@@ -49,6 +54,7 @@ export function ReposConnectPanel({
             repoFullName,
             installationId,
             defaultBranch,
+            githubRepoId,
           );
           toast.success(`Connected ${repoFullName}`);
         }
@@ -82,7 +88,7 @@ export function ReposConnectPanel({
               variant={connected ? "outline" : "default"}
               disabled={isPending || (!connected && connectedRepos.length >= repoLimit)}
               onClick={() =>
-                toggleRepo(repo.fullName, repo.defaultBranch, connected)
+                toggleRepo(repo.fullName, repo.defaultBranch, repo.id, connected)
               }
             >
               {connected ? "Disconnect" : "Connect"}
