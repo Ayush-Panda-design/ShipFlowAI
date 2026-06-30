@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivityFeed } from "@/features/dashboard/components/activity-feed";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { trpc } from "@/trpc/client";
 
 export default function ActivityPage() {
@@ -16,6 +17,9 @@ export default function ActivityPage() {
           Org-wide audit trail — reviews, approvals, and stale PR nudges.
         </p>
       </div>
+
+      <SectionGuideCard section="activity" />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Recent events</CardTitle>

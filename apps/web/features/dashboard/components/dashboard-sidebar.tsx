@@ -16,25 +16,71 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { AutoHideScroll } from "@/components/ui/auto-hide-scroll";
-import { dashboardRoutes, helpRoute } from "@/features/dashboard/lib/routes";
+import {
+  dashboardNavGroups,
+  helpRoute,
+  type DashboardRoute,
+} from "@/features/dashboard/lib/routes";
 import { WorkspaceSwitcher } from "@/features/dashboard/components/workspace-switcher";
+import { cn } from "@/lib/utils";
 
 type DashboardSidebarProps = {
   workspaces: { id: string; name: string }[];
   activeWorkspaceId: string;
 };
 
+const GROUP_ACCENT: Record<string, string> = {
+  home: "from-sky-500/15 to-transparent",
+  planning: "from-amber-500/12 to-transparent",
+  review: "from-violet-500/12 to-transparent",
+  ship: "from-emerald-500/12 to-transparent",
+  account: "from-slate-500/10 to-transparent",
+};
+
+function isRouteActive(pathname: string, href: string) {
+  if (href === "/dashboard") {
+    return pathname === "/dashboard";
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function NavItem({ route, pathname }: { route: DashboardRoute; pathname: string }) {
+  const isActive = isRouteActive(pathname, route.href);
+  const Icon = route.icon;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={isActive}
+        tooltip={route.description ? `${route.title} — ${route.description}` : route.title}
+        render={<Link href={route.href} />}
+        className={cn(
+          "rounded-lg transition-colors",
+          isActive && "bg-sidebar-accent font-medium shadow-sm",
+        )}
+      >
+        <Icon className={cn(isActive && "text-primary")} />
+        <span>{route.title}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
 export function DashboardSidebar({
   workspaces,
   activeWorkspaceId,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const helpActive =
+    pathname === helpRoute.href || pathname.startsWith(`${helpRoute.href}/`);
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border bg-gradient-to-br from-primary/[0.04] to-transparent">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -42,7 +88,7 @@ export function DashboardSidebar({
               render={<Link href="/" />}
               className="data-[active=true]:bg-transparent"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20">
                 <Sparkles className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -57,48 +103,57 @@ export function DashboardSidebar({
       </SidebarHeader>
 
       <SidebarContent className="overflow-hidden p-0">
-        <AutoHideScroll className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
-          <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {dashboardRoutes.map((route) => {
-                  const isActive =
-                    route.href === "/dashboard"
-                      ? pathname === "/dashboard"
-                      : pathname === route.href ||
-                        pathname.startsWith(`${route.href}/`);
+        <AutoHideScroll className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto py-2">
+          {dashboardNavGroups.map((group, index) => (
+            <div key={group.id}>
+              {index > 0 ? <SidebarSeparator className="my-1.5 opacity-60" /> : null}
+              <SidebarGroup
+                className={cn(
+                  "relative overflow-hidden rounded-xl py-1.5",
+                  "before:pointer-events-none before:absolute before:inset-x-2 before:top-0 before:h-8 before:rounded-lg before:bg-gradient-to-b",
+                  GROUP_ACCENT[group.id] ?? "from-transparent to-transparent",
+                )}
+              >
+                <SidebarGroupLabel className="flex h-auto flex-col items-start gap-0 px-3 pb-1 pt-0.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/70">
+                    {group.label}
+                  </span>
+                  {group.hint ? (
+                    <span className="text-[10px] font-normal normal-case tracking-normal text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
+                      {group.hint}
+                    </span>
+                  ) : null}
+                </SidebarGroupLabel>
+                <SidebarGroupContent className="px-1">
+                  <SidebarMenu className="gap-0.5">
+                    {group.routes.map((route) => (
+                      <NavItem key={route.href} route={route} pathname={pathname} />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </div>
+          ))}
 
-                  return (
-                    <SidebarMenuItem key={route.title}>
-                      <SidebarMenuButton
-                        isActive={isActive}
-                        tooltip={route.title}
-                        render={<Link href={route.href} />}
-                      >
-                        <route.icon />
-                        <span>{route.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <SidebarSeparator className="my-2" />
 
-          <SidebarGroup>
-            <SidebarGroupLabel>Help</SidebarGroupLabel>
+          <SidebarGroup className="mx-2 rounded-xl border border-primary/15 bg-gradient-to-br from-primary/[0.06] to-status-progress/[0.03] p-1 shadow-sm">
+            <SidebarGroupLabel className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-primary/80">
+              Help
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    isActive={
-                      pathname === helpRoute.href ||
-                      pathname.startsWith(`${helpRoute.href}/`)
-                    }
-                    tooltip={helpRoute.title}
+                    isActive={helpActive}
+                    tooltip={helpRoute.description ?? helpRoute.title}
                     render={<Link href={helpRoute.href} />}
-                    className="bg-primary/5 font-medium text-primary hover:bg-primary/10 hover:text-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                    className={cn(
+                      "rounded-lg font-medium text-primary hover:bg-primary/10 hover:text-primary",
+                      helpActive
+                        ? "bg-primary/15 text-primary shadow-sm"
+                        : "bg-primary/5",
+                    )}
                   >
                     <helpRoute.icon />
                     <span>{helpRoute.title}</span>
@@ -110,7 +165,7 @@ export function DashboardSidebar({
         </AutoHideScroll>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-2">
+      <SidebarFooter className="border-t border-sidebar-border bg-muted/20 p-2">
         <WorkspaceSwitcher
           workspaces={workspaces}
           activeWorkspaceId={activeWorkspaceId}

@@ -1,4 +1,5 @@
 import { ApprovalsPageClient } from "@/features/dashboard/components/approvals-page-client";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
 import { prisma } from "@/lib/db";
 
@@ -31,6 +32,8 @@ export default async function ApprovalsPage() {
           Human gate for features ready to ship
         </p>
       </div>
+
+      <SectionGuideCard section="approvals" />
 
       <ApprovalsPageClient
         features={features.map((feature) => ({

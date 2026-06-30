@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { trpc } from "@/trpc/client";
 
 const sources = [
@@ -68,6 +69,8 @@ export function IntakePageClient({ projectId, projectName }: IntakePageClientPro
           </Link>
         </Button>
       </div>
+
+      <SectionGuideCard section="intake" />
 
       <Card>
         <CardHeader>

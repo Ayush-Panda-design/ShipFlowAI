@@ -23,6 +23,7 @@ import {
   dashboardPanelHeightClass,
 } from "@/components/ui/auto-hide-scroll";
 import { ProjectPicker } from "@/features/dashboard/components/project-picker";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { FEATURE_STATUS_LABELS } from "@/features/dashboard/lib/routes";
 import { FeatureStatusBadge } from "@/features/shipflow/components/feature-status-badge";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -87,6 +88,8 @@ export function FeatureRequestsPageClient({
         </div>
         <ProjectPicker projects={projects} activeProjectId={projectId} />
       </div>
+
+      <SectionGuideCard section="feature-requests" />
 
       {resume ? (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">

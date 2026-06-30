@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkspaceSwitcher } from "@/features/dashboard/components/workspace-switcher";
 import { WorkspaceMembersPanel } from "@/features/dashboard/components/workspace-members-panel";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { ensureWorkspaceAction, setActiveWorkspaceAction } from "@/lib/actions/shipflow";
 import { requireSession } from "@/lib/auth-session";
 import { createWorkspace, listWorkspacesForUser } from "@repo/services";
@@ -33,6 +34,8 @@ export default async function WorkspacesPage() {
           Multi-tenant workspaces with separate billing and delivery pipelines
         </p>
       </div>
+
+      <SectionGuideCard section="workspaces" />
 
       <Card>
         <CardHeader>

@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { OverviewRecentReviews } from "@/features/dashboard/components/overview-recent-reviews";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import type { OverviewData } from "@/features/dashboard/server/overview-data";
 import type { OnboardingState } from "@/features/dashboard/server/onboarding-state";
 import {
@@ -62,6 +63,8 @@ export function OverviewContent({
           ShipFlow delivery pipeline at a glance
         </p>
       </div>
+
+      <SectionGuideCard section="overview" />
 
       <OnboardingGuide state={onboarding} variant="full" />
 

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
 import { createProject, listProjects } from "@repo/services";
 
@@ -33,6 +34,8 @@ export default async function ProjectsPage() {
           Organize feature requests and connected repositories per project
         </p>
       </div>
+
+      <SectionGuideCard section="projects" />
 
       <Card>
         <CardHeader>

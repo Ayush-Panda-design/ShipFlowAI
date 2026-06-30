@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { getInstallationForUser } from "@/features/github/server/installation";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
 import { requireSession } from "@/lib/auth-session";
@@ -26,6 +27,8 @@ export default async function SettingsPage() {
           Account, workspace, and integration preferences
         </p>
       </div>
+
+      <SectionGuideCard section="settings" />
 
       <Card>
         <CardHeader>

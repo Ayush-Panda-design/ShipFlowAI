@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { FeatureStatusBadge } from "@/features/shipflow/components/feature-status-badge";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
 import { prisma } from "@/lib/db";
@@ -23,6 +24,8 @@ export default async function PrdListPage() {
           View and edit product requirement documents generated from feature requests
         </p>
       </div>
+
+      <SectionGuideCard section="prd" />
 
       {prds.length === 0 ? (
         <p className="text-sm text-muted-foreground">

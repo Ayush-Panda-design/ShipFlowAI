@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UpgradeButton } from "@/features/billing/components/upgrade-button";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { isRazorpayConfigured, isRazorpayProductionReady } from "@/lib/razorpay";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
 import { countConnectedRepositories } from "@repo/services";
@@ -40,6 +41,8 @@ export default async function BillingPage() {
           Workspace: {workspace.name} · Current plan: {workspace.plan}
         </p>
       </div>
+
+      <SectionGuideCard section="billing" />
 
       {!razorpayReady && (
         <Card className="border-amber-500/40 bg-amber-500/5">

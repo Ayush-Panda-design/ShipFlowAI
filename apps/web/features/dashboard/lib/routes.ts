@@ -26,100 +26,144 @@ export type DashboardRoute = {
   description?: string;
 };
 
+export type DashboardNavGroup = {
+  id: string;
+  label: string;
+  hint?: string;
+  routes: DashboardRoute[];
+};
+
 export const DASHBOARD_BASE_PATH = "/dashboard";
 export const BILLING_PATH = `${DASHBOARD_BASE_PATH}/billing`;
 
-export const dashboardRoutes: DashboardRoute[] = [
+const overviewRoute: DashboardRoute = {
+  title: "Overview",
+  href: DASHBOARD_BASE_PATH,
+  icon: LayoutDashboard,
+  description: "ShipFlow delivery pipeline at a glance",
+};
+
+export const dashboardNavGroups: DashboardNavGroup[] = [
   {
-    title: "Overview",
-    href: DASHBOARD_BASE_PATH,
-    icon: LayoutDashboard,
-    description: "ShipFlow delivery pipeline at a glance",
+    id: "home",
+    label: "Home",
+    routes: [overviewRoute],
   },
   {
-    title: "Workspaces",
-    href: `${DASHBOARD_BASE_PATH}/workspaces`,
-    icon: Building2,
-    description: "Manage workspaces and members",
+    id: "planning",
+    label: "Plan & deliver",
+    hint: "Ideas → PRD → tasks",
+    routes: [
+      {
+        title: "Workspaces",
+        href: `${DASHBOARD_BASE_PATH}/workspaces`,
+        icon: Building2,
+        description: "Manage workspaces and members",
+      },
+      {
+        title: "Projects",
+        href: `${DASHBOARD_BASE_PATH}/projects`,
+        icon: FolderKanban,
+      },
+      {
+        title: "Feature Requests",
+        href: `${DASHBOARD_BASE_PATH}/feature-requests`,
+        icon: Lightbulb,
+        description: "Request → PRD → Tasks → Ship",
+      },
+      {
+        title: "Customer Intake",
+        href: `${DASHBOARD_BASE_PATH}/intake`,
+        icon: Inbox,
+        description: "Log customer requests from email, tickets, or calls",
+      },
+      {
+        title: "PRD Editor",
+        href: `${DASHBOARD_BASE_PATH}/prd`,
+        icon: FileText,
+        description: "View and edit generated PRDs",
+      },
+      {
+        title: "Task Board",
+        href: `${DASHBOARD_BASE_PATH}/tasks`,
+        icon: Kanban,
+      },
+    ],
   },
   {
-    title: "Projects",
-    href: `${DASHBOARD_BASE_PATH}/projects`,
-    icon: FolderKanban,
+    id: "review",
+    label: "Code & review",
+    hint: "GitHub PRs & AI",
+    routes: [
+      {
+        title: "Pull Requests",
+        href: `${DASHBOARD_BASE_PATH}/pull-requests`,
+        icon: GitPullRequest,
+      },
+      {
+        title: "Review History",
+        href: `${DASHBOARD_BASE_PATH}/review-history`,
+        icon: History,
+        description: "AI review results across PRs",
+      },
+      {
+        title: "Review SLA",
+        href: `${DASHBOARD_BASE_PATH}/review-sla`,
+        icon: BarChart3,
+        description: "Time-to-first-review by repo",
+      },
+      {
+        title: "Repositories",
+        href: `${DASHBOARD_BASE_PATH}/repositories`,
+        icon: FolderGit2,
+      },
+      {
+        title: "GitHub App",
+        href: `${DASHBOARD_BASE_PATH}/github-app`,
+        icon: AppWindow,
+      },
+    ],
   },
   {
-    title: "Feature Requests",
-    href: `${DASHBOARD_BASE_PATH}/feature-requests`,
-    icon: Lightbulb,
-    description: "Request → PRD → Tasks → Ship",
+    id: "ship",
+    label: "Ship & track",
+    hint: "Approvals & audit",
+    routes: [
+      {
+        title: "Release Approval",
+        href: `${DASHBOARD_BASE_PATH}/approvals`,
+        icon: ShieldCheck,
+        description: "Human gate for features ready to ship",
+      },
+      {
+        title: "Activity",
+        href: `${DASHBOARD_BASE_PATH}/activity`,
+        icon: Activity,
+        description: "Org-wide workflow audit trail",
+      },
+    ],
   },
   {
-    title: "Customer Intake",
-    href: `${DASHBOARD_BASE_PATH}/intake`,
-    icon: Inbox,
-    description: "Log customer requests from email, tickets, or calls",
-  },
-  {
-    title: "PRD Editor",
-    href: `${DASHBOARD_BASE_PATH}/prd`,
-    icon: FileText,
-    description: "View and edit generated PRDs",
-  },
-  {
-    title: "Task Board",
-    href: `${DASHBOARD_BASE_PATH}/tasks`,
-    icon: Kanban,
-  },
-  {
-    title: "Pull Requests",
-    href: `${DASHBOARD_BASE_PATH}/pull-requests`,
-    icon: GitPullRequest,
-  },
-  {
-    title: "Review History",
-    href: `${DASHBOARD_BASE_PATH}/review-history`,
-    icon: History,
-    description: "AI review results across PRs",
-  },
-  {
-    title: "Review SLA",
-    href: `${DASHBOARD_BASE_PATH}/review-sla`,
-    icon: BarChart3,
-    description: "Time-to-first-review by repo",
-  },
-  {
-    title: "Activity",
-    href: `${DASHBOARD_BASE_PATH}/activity`,
-    icon: Activity,
-    description: "Org-wide workflow audit trail",
-  },
-  {
-    title: "Release Approval",
-    href: `${DASHBOARD_BASE_PATH}/approvals`,
-    icon: ShieldCheck,
-    description: "Human gate for features ready to ship",
-  },
-  {
-    title: "Repositories",
-    href: `${DASHBOARD_BASE_PATH}/repositories`,
-    icon: FolderGit2,
-  },
-  {
-    title: "Billing",
-    href: BILLING_PATH,
-    icon: CreditCard,
-  },
-  {
-    title: "GitHub App",
-    href: `${DASHBOARD_BASE_PATH}/github-app`,
-    icon: AppWindow,
-  },
-  {
-    title: "Settings",
-    href: `${DASHBOARD_BASE_PATH}/settings`,
-    icon: Settings,
+    id: "account",
+    label: "Workspace",
+    routes: [
+      {
+        title: "Billing",
+        href: BILLING_PATH,
+        icon: CreditCard,
+      },
+      {
+        title: "Settings",
+        href: `${DASHBOARD_BASE_PATH}/settings`,
+        icon: Settings,
+      },
+    ],
   },
 ];
+
+export const dashboardRoutes: DashboardRoute[] = dashboardNavGroups.flatMap(
+  (group) => group.routes,
+);
 
 export const helpRoute: DashboardRoute = {
   title: "Help & Guide",

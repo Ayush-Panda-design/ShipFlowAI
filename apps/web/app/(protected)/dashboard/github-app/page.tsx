@@ -1,4 +1,5 @@
 import { GitHubConnectCard } from "@/features/dashboard/components/github-connect-card";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import {
   getGitHubLinkDiagnostics,
   getInstallationForUser,
@@ -31,7 +32,9 @@ export default async function GitHubAppPage({ searchParams }: GitHubAppPageProps
     !installation ? await getGitHubLinkDiagnostics(session.user.id) : null;
 
   return (
-    <GitHubConnectCard
+    <div className="space-y-6">
+      <SectionGuideCard section="github-app" />
+      <GitHubConnectCard
       userId={session.user.id}
       signedInWithGitHub={signedInWithGitHub}
       installation={
@@ -45,5 +48,6 @@ export default async function GitHubAppPage({ searchParams }: GitHubAppPageProps
       error={error ?? null}
       diagnostics={diagnostics}
     />
+    </div>
   );
 }

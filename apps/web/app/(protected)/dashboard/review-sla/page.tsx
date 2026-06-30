@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { trpc } from "@/trpc/client";
 import { LoadingState } from "@/components/ui/loading-state";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 
 export default function ReviewSlaPage() {
   const { data, isLoading } = trpc.review.reviewSlaMetrics.useQuery();
@@ -23,6 +24,8 @@ export default function ReviewSlaPage() {
           shipping.
         </p>
       </div>
+
+      <SectionGuideCard section="review-sla" />
 
       {isLoading ? (
         <LoadingState

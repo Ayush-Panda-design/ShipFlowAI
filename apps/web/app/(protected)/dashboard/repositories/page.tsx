@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ReposConnectPanel } from "@/features/dashboard/components/repos-connect-panel";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
 import { getInstallationForUser } from "@/features/github/server/installation";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
@@ -70,6 +71,7 @@ export default async function RepositoriesPage() {
           {installation.accountLogin})
         </p>
       </div>
+      <SectionGuideCard section="repositories" />
       <ReposConnectPanel
         projectId={project.id}
         installationId={installation.installationId}

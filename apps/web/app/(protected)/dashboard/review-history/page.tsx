@@ -1,4 +1,5 @@
 import { ReviewHistoryTableClient } from "@/features/dashboard/components/review-history-table-client";
+import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
 import { requireSession } from "@/lib/auth-session";
 
@@ -16,6 +17,8 @@ export default async function ReviewHistoryPage() {
           AI review results across all pull requests
         </p>
       </div>
+
+      <SectionGuideCard section="review-history" />
 
       <ReviewHistoryTableClient />
     </div>
