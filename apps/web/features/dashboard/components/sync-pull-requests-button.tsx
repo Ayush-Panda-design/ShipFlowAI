@@ -223,9 +223,6 @@ export function SyncPullRequestsButton({
 
   useEffect(() => {
     if (!isSyncing) {
-      if (panelStatus?.status === "completed") {
-        setDisplayPercent(100);
-      }
       if (panelStatus?.status !== "running") {
         syncStartRef.current = null;
       }
@@ -247,6 +244,9 @@ export function SyncPullRequestsButton({
     return () => clearInterval(id);
   }, [isSyncing, panelStatus?.status]);
 
+  const resolvedDisplayPercent =
+    !isSyncing && panelStatus?.status === "completed" ? 100 : displayPercent;
+
   return (
     <div className={cn("flex flex-col items-end gap-3", className)}>
       <Button
@@ -267,7 +267,7 @@ export function SyncPullRequestsButton({
         <div className="flex w-full flex-col items-end gap-2">
           <SyncProgressPanel
             status={panelStatus}
-            displayPercent={displayPercent}
+            displayPercent={resolvedDisplayPercent}
           />
           {panelStatus.status !== "running" ? (
             <Button

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -118,19 +118,14 @@ type TaskBoardProps = {
 export function TaskBoard({ projectId, fromFeatureId }: TaskBoardProps) {
   const [search, setSearch] = useState("");
   const [columnFilter, setColumnFilter] = useState("all");
-  const [featureFilter, setFeatureFilter] = useState(fromFeatureId ?? "all");
+  const [featureFilter, setFeatureFilter] = useState("all");
   const [hideShipped, setHideShipped] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(() =>
+    typeof window !== "undefined" ? window.localStorage.getItem(GUIDE_KEY) !== "0" : false,
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    setFeatureFilter(fromFeatureId ?? "all");
-  }, [fromFeatureId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    setGuideOpen(window.localStorage.getItem(GUIDE_KEY) !== "0");
-  }, []);
+  const activeFeatureFilter = fromFeatureId ?? featureFilter;
 
   const toggleGuide = () => {
     setGuideOpen((prev) => {
@@ -260,10 +255,10 @@ export function TaskBoard({ projectId, fromFeatureId }: TaskBoardProps) {
       [t.title, t.description ?? "", t.featureRequest.title, t.status, t.featureRequest.status].join(" "),
     );
     if (columnFilter !== "all") items = items.filter((t) => t.status === columnFilter);
-    if (featureFilter !== "all") items = items.filter((t) => t.featureRequest.id === featureFilter);
+    if (activeFeatureFilter !== "all") items = items.filter((t) => t.featureRequest.id === activeFeatureFilter);
     if (hideShipped) items = items.filter((t) => !SHIPPED_STATUSES.has(t.featureRequest.status));
     return items;
-  }, [tasks, search, columnFilter, featureFilter, hideShipped]);
+  }, [tasks, search, columnFilter, activeFeatureFilter, hideShipped]);
 
   const isBoardLoading = isLoading || isLoadingFeatures;
 
@@ -328,7 +323,7 @@ export function TaskBoard({ projectId, fromFeatureId }: TaskBoardProps) {
         </select>
 
         <select
-          value={featureFilter}
+          value={activeFeatureFilter}
           onChange={(e) => setFeatureFilter(e.target.value)}
           className="h-9 min-w-[10rem] rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm"
         >

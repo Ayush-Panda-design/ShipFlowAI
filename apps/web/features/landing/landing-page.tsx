@@ -160,15 +160,18 @@ const FAQ = [
   },
 ] as const;
 
+const HEADER_SCROLL_THRESHOLD_PX = 24;
+
 export function LandingPage({ isSignedIn, userName }: LandingPageProps) {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(
+    () => typeof window !== "undefined" && window.scrollY > HEADER_SCROLL_THRESHOLD_PX,
+  );
   const [activeStep, setActiveStep] = useState(0);
   const signInHref = `/sign-in?callbackUrl=${encodeURIComponent(DEFAULT_POST_AUTH_PATH)}`;
   const dashboardHref = DEFAULT_POST_AUTH_PATH;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
+    const onScroll = () => setScrolled(window.scrollY > HEADER_SCROLL_THRESHOLD_PX);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);

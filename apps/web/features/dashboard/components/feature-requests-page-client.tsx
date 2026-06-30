@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowRight, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,11 +43,9 @@ export function FeatureRequestsPageClient({
 }: FeatureRequestsPageClientProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [resume, setResume] = useState<LastFeature | null>(null);
-
-  useEffect(() => {
-    setResume(readLastFeature());
-  }, []);
+  const [resume, setResume] = useState<LastFeature | null>(() =>
+    typeof window !== "undefined" ? readLastFeature() : null,
+  );
 
   const utils = trpc.useUtils();
   const { data: features = [], isLoading } = trpc.featureRequest.list.useQuery({

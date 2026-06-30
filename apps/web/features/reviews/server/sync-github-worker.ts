@@ -120,7 +120,7 @@ export async function syncConnectedRepositories(
   let changed = 0;
   let queued = 0;
   let failedRepos = 0;
-  let totalRepos = repositories.length;
+  const totalRepos = repositories.length;
   const repoFailures: RepoSyncFailure[] = [];
 
   for (const [installationId, repos] of byInstallation) {

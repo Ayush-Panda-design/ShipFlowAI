@@ -31,7 +31,7 @@ export async function getOnboardingState(
 
   const signedInWithGitHub = Boolean(githubAccount);
 
-  let installation =
+  const installation =
     (await getInstallationForUser(userId)) ??
     (await tryAutoLinkGitHubInstallation(userId));
 

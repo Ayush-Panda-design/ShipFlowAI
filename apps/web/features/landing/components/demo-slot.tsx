@@ -7,8 +7,10 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 /** Drop `demo.gif` in `public/` or set NEXT_PUBLIC_DEMO_GIF_URL. */
-const DEMO_GIF_SRC =
-  process.env.NEXT_PUBLIC_DEMO_GIF_URL?.trim() || "/demo.gif";
+const DEMO_GIF_SRC = (() => {
+  const fromEnv = process.env.NEXT_PUBLIC_DEMO_GIF_URL?.trim();
+  return fromEnv && fromEnv.length > 0 ? fromEnv : "/demo.gif";
+})();
 
 type DemoSlotProps = {
   className?: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { ChevronDown, HelpCircle, Sparkles } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,11 +50,10 @@ function GuideBlock({
 export function SectionGuideCard({ section, className }: SectionGuideCardProps) {
   const guide = SECTION_GUIDES[section];
   const storageKey = `shipflow.guide.${section}`;
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    setOpen(window.localStorage.getItem(storageKey) !== "0");
-  }, [storageKey]);
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(storageKey) !== "0";
+  });
 
   const toggle = () => {
     setOpen((prev) => {
