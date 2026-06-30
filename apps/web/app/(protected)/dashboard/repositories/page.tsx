@@ -62,10 +62,14 @@ export default async function RepositoriesPage() {
     );
   }
 
-  await reconcileRenamedRepositoriesForWorkspace(
-    workspace.id,
-    installation.installationId,
-  );
+  try {
+    await reconcileRenamedRepositoriesForWorkspace(
+      workspace.id,
+      installation.installationId,
+    );
+  } catch (error) {
+    console.error("[repositories] Repo rename reconcile failed:", error);
+  }
 
   const connectedRepos = await listConnectedRepositoriesForWorkspace(workspace.id);
 

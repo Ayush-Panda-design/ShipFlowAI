@@ -7,7 +7,79 @@ const PRO_SUBSCRIPTION_MONTHS = 12;
 let cachedPlanId: string | null = null;
 
 function readEnv(name: string) {
-  return process.env[name]?.trim() || undefined;
+  const raw = process.env[name]?.trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  return raw.replace(/^["']|["']$/g, "");
+}
+
+export class RazorpayApiError extends Error {
+  constructor(
+    message: string,
+    readonly statusCode: number,
+    readonly path: string,
+    readonly body?: string,
+  ) {
+    super(message);
+    this.name = "RazorpayApiError";
+  }
+}
+
+function parseRazorpayErrorBody(body: string) {
+  try {
+    const parsed = JSON.parse(body) as {
+      error?: { code?: string; description?: string; reason?: string };
+    };
+    const err = parsed.error;
+    if (err?.description) {
+      return err.description;
+    }
+    if (err?.reason) {
+      return err.reason;
+    }
+    if (err?.code) {
+      return err.code;
+    }
+  } catch {
+    // ignore JSON parse errors
+  }
+
+  return body.slice(0, 300);
+}
+
+export function formatRazorpayClientError(error: unknown): {
+  message: string;
+  status: number;
+} {
+  if (error instanceof RazorpayApiError) {
+    const detail = error.message;
+    if (error.statusCode === 401 || /unauthorized/i.test(detail)) {
+      return {
+        status: 401,
+        message:
+          "Razorpay rejected your API keys. In Vercel, set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET from Test Mode → Settings → API Keys (not the webhook secret), then redeploy.",
+      };
+    }
+
+    if (/subscription/i.test(detail) && /not enabled|disabled/i.test(detail)) {
+      return {
+        status: 503,
+        message:
+          "Subscriptions are not enabled on your Razorpay account. Enable Subscriptions in the Razorpay dashboard, then try again.",
+      };
+    }
+
+    return {
+      status: error.statusCode >= 400 && error.statusCode < 600 ? error.statusCode : 502,
+      message: detail,
+    };
+  }
+
+  const message =
+    error instanceof Error ? error.message : "Failed to create checkout";
+  return { message, status: 500 };
 }
 
 export function isRazorpayConfigured() {
@@ -67,10 +139,22 @@ async function razorpayFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Razorpay API ${path} failed: ${errorBody}`);
+    const detail = parseRazorpayErrorBody(errorBody);
+    throw new RazorpayApiError(
+      `Razorpay API ${path} failed: ${detail}`,
+      response.status,
+      path,
+      errorBody,
+    );
   }
 
   return response.json() as Promise<T>;
+}
+
+/** Read-only ping — verifies Key ID + Key Secret without creating billing resources. */
+export async function verifyRazorpayCredentials() {
+  await razorpayFetch<{ count?: number }>("/plans?count=1");
+  return { ok: true as const };
 }
 
 /** Returns dashboard plan id or creates a monthly Pro plan once per process. */

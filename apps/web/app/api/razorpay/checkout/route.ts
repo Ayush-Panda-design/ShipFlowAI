@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 
 import { recordRazorpaySubscription } from "@/lib/billing/razorpay-order";
-import { createProSubscription, getRazorpayConfigError } from "@/lib/razorpay";
-import { requireSession } from "@/lib/auth-session";
+import {
+  createProSubscription,
+  formatRazorpayClientError,
+  getRazorpayConfigError,
+} from "@/lib/razorpay";
+import { getServerSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
-    const session = await requireSession("/dashboard/billing");
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+    }
     const configError = getRazorpayConfigError();
 
     if (configError) {
@@ -56,8 +63,8 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to create checkout";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[razorpay/checkout]", error);
+    const { message, status } = formatRazorpayClientError(error);
+    return NextResponse.json({ error: message }, { status });
   }
 }

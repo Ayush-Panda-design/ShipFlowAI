@@ -42,6 +42,38 @@ async function resolveRepoOnGitHub(
   }
 }
 
+async function migratePullRequestRepoNames(
+  oldFullName: string,
+  newFullName: string,
+) {
+  const oldPullRequests = await prisma.pullRequest.findMany({
+    where: { repoFullName: oldFullName },
+    select: { id: true, prNumber: true },
+  });
+
+  for (const pullRequest of oldPullRequests) {
+    const duplicate = await prisma.pullRequest.findUnique({
+      where: {
+        repoFullName_prNumber: {
+          repoFullName: newFullName,
+          prNumber: pullRequest.prNumber,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (duplicate) {
+      await prisma.pullRequest.delete({ where: { id: pullRequest.id } });
+      continue;
+    }
+
+    await prisma.pullRequest.update({
+      where: { id: pullRequest.id },
+      data: { repoFullName: newFullName },
+    });
+  }
+}
+
 async function applyRepositoryRename(
   connectedId: string,
   projectId: string,
@@ -64,37 +96,30 @@ async function applyRepositoryRename(
   });
 
   if (existingAtNewName && existingAtNewName.id !== connectedId) {
-    await prisma.$transaction([
-      prisma.pullRequest.updateMany({
-        where: { repositoryId: connectedId },
-        data: { repositoryId: existingAtNewName.id },
-      }),
-      prisma.connectedRepository.delete({ where: { id: connectedId } }),
-      prisma.connectedRepository.update({
-        where: { id: existingAtNewName.id },
-        data: { githubRepoId },
-      }),
-    ]);
+    await prisma.pullRequest.updateMany({
+      where: { repositoryId: connectedId },
+      data: { repositoryId: existingAtNewName.id },
+    });
+    await prisma.connectedRepository.delete({ where: { id: connectedId } });
+    await prisma.connectedRepository.update({
+      where: { id: existingAtNewName.id },
+      data: { githubRepoId },
+    });
     return;
   }
 
-  await prisma.$transaction([
-    prisma.pullRequest.updateMany({
-      where: { repoFullName: oldFullName },
-      data: { repoFullName: newFullName },
-    }),
-    prisma.reviewRule.updateMany({
-      where: { repoFullName: oldFullName },
-      data: { repoFullName: newFullName },
-    }),
-    prisma.connectedRepository.update({
-      where: { id: connectedId },
-      data: {
-        repoFullName: newFullName,
-        githubRepoId,
-      },
-    }),
-  ]);
+  await migratePullRequestRepoNames(oldFullName, newFullName);
+  await prisma.reviewRule.updateMany({
+    where: { repoFullName: oldFullName },
+    data: { repoFullName: newFullName },
+  });
+  await prisma.connectedRepository.update({
+    where: { id: connectedId },
+    data: {
+      repoFullName: newFullName,
+      githubRepoId,
+    },
+  });
 }
 
 /**
@@ -105,60 +130,92 @@ export async function reconcileRenamedRepositoriesForWorkspace(
   workspaceId: string,
   installationId: number,
 ) {
-  const connected = await prisma.connectedRepository.findMany({
-    where: { project: { workspaceId } },
-    select: {
-      id: true,
-      projectId: true,
-      repoFullName: true,
-      githubRepoId: true,
-    },
-  });
+  let connected: Array<{
+    id: string;
+    projectId: string;
+    repoFullName: string;
+    githubRepoId: number | null;
+  }>;
+
+  try {
+    connected = await prisma.connectedRepository.findMany({
+      where: { project: { workspaceId } },
+      select: {
+        id: true,
+        projectId: true,
+        repoFullName: true,
+        githubRepoId: true,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "[repo-rename-sync] Could not load connected repositories:",
+      error,
+    );
+    return { updated: 0, skipped: true as const };
+  }
 
   if (connected.length === 0) {
     return { updated: 0 };
   }
 
-  const liveRepos = await listAllLiveRepos(installationId);
+  let liveRepos: LiveRepo[];
+  try {
+    liveRepos = await listAllLiveRepos(installationId);
+  } catch (error) {
+    console.error("[repo-rename-sync] Could not list GitHub repos:", error);
+    return { updated: 0, skipped: true as const };
+  }
+
   const liveByName = new Set(liveRepos.map((repo) => repo.full_name));
   const liveById = new Map(liveRepos.map((repo) => [repo.id, repo.full_name]));
 
   let updated = 0;
 
   for (const record of connected) {
-    if (liveByName.has(record.repoFullName)) {
-      const live = liveRepos.find((r) => r.full_name === record.repoFullName);
-      if (live && record.githubRepoId !== live.id) {
-        await prisma.connectedRepository.update({
-          where: { id: record.id },
-          data: { githubRepoId: live.id },
-        });
+    try {
+      if (liveByName.has(record.repoFullName)) {
+        const live = liveRepos.find((r) => r.full_name === record.repoFullName);
+        if (live && record.githubRepoId !== live.id) {
+          await prisma.connectedRepository.update({
+            where: { id: record.id },
+            data: { githubRepoId: live.id },
+          });
+        }
+        continue;
       }
-      continue;
-    }
 
-    let resolved: LiveRepo | null = null;
+      let resolved: LiveRepo | null = null;
 
-    if (record.githubRepoId != null) {
-      const newName = liveById.get(record.githubRepoId);
-      if (newName) {
-        resolved = { id: record.githubRepoId, full_name: newName };
+      if (record.githubRepoId != null) {
+        const newName = liveById.get(record.githubRepoId);
+        if (newName) {
+          resolved = { id: record.githubRepoId, full_name: newName };
+        }
       }
-    }
 
-    if (!resolved) {
-      resolved = await resolveRepoOnGitHub(installationId, record.repoFullName);
-    }
+      if (!resolved) {
+        resolved = await resolveRepoOnGitHub(
+          installationId,
+          record.repoFullName,
+        );
+      }
 
-    if (resolved && resolved.full_name !== record.repoFullName) {
-      await applyRepositoryRename(
-        record.id,
-        record.projectId,
-        record.repoFullName,
-        resolved.full_name,
-        resolved.id,
+      if (resolved && resolved.full_name !== record.repoFullName) {
+        await applyRepositoryRename(
+          record.id,
+          record.projectId,
+          record.repoFullName,
+          resolved.full_name,
+          resolved.id,
+        );
+        updated += 1;
+      }
+    } catch (error) {
+      console.error(
+        `[repo-rename-sync] Failed to reconcile ${record.repoFullName}:`,
+        error,
       );
-      updated += 1;
     }
   }
 

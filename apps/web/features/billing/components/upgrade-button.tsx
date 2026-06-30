@@ -40,7 +40,7 @@ export function UpgradeButton({
         body: JSON.stringify({ workspaceId }),
       });
 
-      const data = (await response.json()) as {
+      const data = (await response.json().catch(() => ({}))) as {
         error?: string;
         keyId?: string;
         subscriptionId?: string;
@@ -101,11 +101,12 @@ export function UpgradeButton({
 
       rzp.open();
     } catch (checkoutError) {
-      setError(
+      const message =
         checkoutError instanceof Error
           ? checkoutError.message
-          : "Upgrade failed"
-      );
+          : "Upgrade failed";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
