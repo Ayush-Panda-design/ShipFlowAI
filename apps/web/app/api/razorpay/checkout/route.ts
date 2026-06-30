@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[razorpay/checkout]", error);
-    const { message, status } = formatRazorpayClientError(error);
-    return NextResponse.json({ error: message }, { status });
+    const { message, status, diagnostics } = formatRazorpayClientError(error);
+    return NextResponse.json({ error: message, diagnostics }, { status });
   }
 }

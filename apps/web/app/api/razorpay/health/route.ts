@@ -4,6 +4,7 @@ import { getServerSession } from "@/lib/auth-session";
 import {
   formatRazorpayClientError,
   getRazorpayConfigError,
+  getRazorpayKeyDiagnostics,
   verifyRazorpayCredentials,
 } from "@/lib/razorpay";
 
@@ -15,9 +16,11 @@ export async function GET() {
   }
 
   const configError = getRazorpayConfigError();
+  const diagnostics = getRazorpayKeyDiagnostics();
+
   if (configError) {
     return NextResponse.json(
-      { ok: false, configured: false, error: configError },
+      { ok: false, configured: false, error: configError, diagnostics },
       { status: 503 },
     );
   }
@@ -27,12 +30,19 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       configured: true,
+      diagnostics,
       message: "Razorpay API keys are valid.",
     });
   } catch (error) {
-    const { message, status } = formatRazorpayClientError(error);
+    const { message, status, diagnostics: errorDiagnostics } =
+      formatRazorpayClientError(error);
     return NextResponse.json(
-      { ok: false, configured: true, error: message },
+      {
+        ok: false,
+        configured: true,
+        error: message,
+        diagnostics: errorDiagnostics ?? diagnostics,
+      },
       { status },
     );
   }

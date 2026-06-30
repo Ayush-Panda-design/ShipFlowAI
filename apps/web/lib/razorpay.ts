@@ -52,14 +52,43 @@ function parseRazorpayErrorBody(body: string) {
 export function formatRazorpayClientError(error: unknown): {
   message: string;
   status: number;
+  diagnostics?: ReturnType<typeof getRazorpayKeyDiagnostics>;
 } {
   if (error instanceof RazorpayApiError) {
     const detail = error.message;
     if (error.statusCode === 401 || /unauthorized/i.test(detail)) {
+      const diagnostics = getRazorpayKeyDiagnostics();
+      const hints: string[] = [
+        "Razorpay returned Unauthorized — the Key ID and Key Secret pair is wrong or mismatched.",
+        "Use values from Razorpay → Settings → API Keys (not the webhook secret).",
+        "Key ID and secret must be generated together; regenerating invalidates the old secret.",
+        "After updating Vercel env vars, redeploy Production.",
+      ];
+
+      if (diagnostics.apiSecretMatchesWebhookSecret) {
+        hints.unshift(
+          "RAZORPAY_KEY_SECRET matches RAZORPAY_WEBHOOK_SECRET — use the API key secret instead.",
+        );
+      }
+
+      if (diagnostics.keyIdMode === "live") {
+        hints.push(
+          "You are using live keys (rzp_live_…). Complete Razorpay KYC and use Live Mode API keys, or switch to test keys (rzp_test_…) for testing.",
+        );
+      } else if (diagnostics.keyIdMode === "test") {
+        hints.push(
+          "For testing, Razorpay dashboard must be in Test Mode when you copy rzp_test_… keys.",
+        );
+      } else if (diagnostics.keyIdMode === "invalid") {
+        hints.push(
+          "RAZORPAY_KEY_ID must start with rzp_test_ or rzp_live_.",
+        );
+      }
+
       return {
         status: 401,
-        message:
-          "Razorpay rejected your API keys. In Vercel, set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET from Test Mode → Settings → API Keys (not the webhook secret), then redeploy.",
+        message: hints.join(" "),
+        diagnostics,
       };
     }
 
@@ -93,6 +122,31 @@ export function isRazorpayWebhookConfigured() {
 /** Live checkout + webhook backup both ready (required for production). */
 export function isRazorpayProductionReady() {
   return isRazorpayConfigured() && isRazorpayWebhookConfigured();
+}
+
+export function getRazorpayKeyDiagnostics() {
+  const keyId = readEnv("RAZORPAY_KEY_ID");
+  const keySecret = readEnv("RAZORPAY_KEY_SECRET");
+  const webhookSecret = readEnv("RAZORPAY_WEBHOOK_SECRET");
+
+  const keyIdMode = keyId?.startsWith("rzp_live_")
+    ? "live"
+    : keyId?.startsWith("rzp_test_")
+      ? "test"
+      : "invalid";
+
+  return {
+    configured: Boolean(keyId && keySecret),
+    keyIdMode,
+    keyIdPrefix: keyId ? `${keyId.slice(0, 12)}…` : null,
+    keySecretLength: keySecret?.length ?? 0,
+    webhookSecretLength: webhookSecret?.length ?? 0,
+    apiSecretMatchesWebhookSecret: Boolean(
+      keySecret && webhookSecret && keySecret === webhookSecret,
+    ),
+    keyIdLooksValid: Boolean(keyId?.match(/^rzp_(test|live)_[A-Za-z0-9]+$/)),
+    keySecretLooksValid: Boolean(keySecret && keySecret.length >= 20),
+  };
 }
 
 export function getRazorpayConfigError(): string | null {
