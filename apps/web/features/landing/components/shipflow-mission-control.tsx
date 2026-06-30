@@ -45,18 +45,11 @@ function polarToXY(angleDeg: number, radius: number, cx: number, cy: number) {
 }
 
 export function ShipflowMissionControl({ activeStep, className }: ShipflowMissionControlProps) {
-  const [logIndex, setLogIndex] = useState(0);
   const [reviewIndex, setReviewIndex] = useState(0);
-  const [pulseKey, setPulseKey] = useState(0);
 
   const cx = 50;
   const cy = 48;
   const radius = 34;
-
-  useEffect(() => {
-    setLogIndex(activeStep);
-    setPulseKey((k) => k + 1);
-  }, [activeStep]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -154,7 +147,7 @@ export function ShipflowMissionControl({ activeStep, className }: ShipflowMissio
 
         {/* Traveling packet */}
         <motion.circle
-          key={pulseKey}
+          key={activeStep}
           r="1.2"
           fill="#fbbf24"
           initial={{ cx: activePos.x, cy: activePos.y, opacity: 1 }}
@@ -184,15 +177,15 @@ export function ShipflowMissionControl({ activeStep, className }: ShipflowMissio
           <p className="mb-1.5 text-[9px] uppercase tracking-[0.25em] text-white/35">Event stream</p>
           <div className="space-y-1">
             <AnimatePresence mode="popLayout">
-              {LOG_LINES.slice(Math.max(0, logIndex - 2), logIndex + 2).map((line) => (
+              {LOG_LINES.slice(Math.max(0, activeStep - 2), activeStep + 2).map((line) => (
                 <motion.p
                   key={`${line.step}-${line.text}`}
                   initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: line.step === logIndex ? 1 : 0.45, x: 0 }}
+                  animate={{ opacity: line.step === activeStep ? 1 : 0.45, x: 0 }}
                   exit={{ opacity: 0 }}
                   className={cn(
                     "truncate text-[10px] sm:text-[11px]",
-                    line.step === logIndex ? "text-green-400" : "text-white/40",
+                    line.step === activeStep ? "text-green-400" : "text-white/40",
                   )}
                 >
                   <span className="text-red-500/80">&gt;</span> {line.text}

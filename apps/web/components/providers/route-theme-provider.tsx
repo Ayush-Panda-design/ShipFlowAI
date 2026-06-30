@@ -27,6 +27,46 @@ type RouteThemeContextValue = {
 
 const RouteThemeContext = createContext<RouteThemeContextValue | null>(null);
 
+function RouteThemeScope({
+  children,
+  storageKey,
+  defaultTheme,
+}: {
+  children: ReactNode;
+  storageKey: string;
+  defaultTheme: AppTheme;
+}) {
+  const [theme, setThemeState] = useState<AppTheme>(() =>
+    readStoredTheme(storageKey, defaultTheme),
+  );
+
+  useEffect(() => {
+    applyThemeToDocument(theme);
+  }, [theme]);
+
+  const setTheme = useCallback(
+    (next: AppTheme) => {
+      try {
+        localStorage.setItem(storageKey, next);
+      } catch {
+        // ignore
+      }
+
+      setThemeState(next);
+    },
+    [storageKey],
+  );
+
+  const value = useMemo(
+    () => ({ theme, setTheme, canToggle: true as const }),
+    [theme, setTheme],
+  );
+
+  return (
+    <RouteThemeContext.Provider value={value}>{children}</RouteThemeContext.Provider>
+  );
+}
+
 export function RouteThemeProvider({
   children,
   defaultTheme = "dark",
@@ -36,44 +76,23 @@ export function RouteThemeProvider({
 }) {
   const pathname = usePathname();
   const storageKey = getThemeStorageKey(pathname);
-  const canToggle = storageKey !== null;
-  const [theme, setThemeState] = useState<AppTheme>(defaultTheme);
 
-  useEffect(() => {
-    if (!storageKey) {
-      return;
-    }
+  if (!storageKey) {
+    const value: RouteThemeContextValue = {
+      theme: defaultTheme,
+      setTheme: () => {},
+      canToggle: false,
+    };
 
-    const stored = readStoredTheme(storageKey, defaultTheme);
-    setThemeState(stored);
-    applyThemeToDocument(stored);
-  }, [storageKey, defaultTheme]);
-
-  const setTheme = useCallback(
-    (next: AppTheme) => {
-      if (!storageKey) {
-        return;
-      }
-
-      try {
-        localStorage.setItem(storageKey, next);
-      } catch {
-        // ignore
-      }
-
-      setThemeState(next);
-      applyThemeToDocument(next);
-    },
-    [storageKey],
-  );
-
-  const value = useMemo(
-    () => ({ theme, setTheme, canToggle }),
-    [theme, setTheme, canToggle],
-  );
+    return (
+      <RouteThemeContext.Provider value={value}>{children}</RouteThemeContext.Provider>
+    );
+  }
 
   return (
-    <RouteThemeContext.Provider value={value}>{children}</RouteThemeContext.Provider>
+    <RouteThemeScope key={storageKey} storageKey={storageKey} defaultTheme={defaultTheme}>
+      {children}
+    </RouteThemeScope>
   );
 }
 
