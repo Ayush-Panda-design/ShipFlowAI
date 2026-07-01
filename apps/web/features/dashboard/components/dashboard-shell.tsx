@@ -23,6 +23,7 @@ type DashboardShellProps = {
   };
   workspaces: { id: string; name: string }[];
   activeWorkspaceId: string;
+  showPlatformAdmin?: boolean;
 };
 
 export function DashboardShell({
@@ -30,6 +31,7 @@ export function DashboardShell({
   user,
   workspaces,
   activeWorkspaceId,
+  showPlatformAdmin = false,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const currentRoute = getDashboardRoute(pathname);
@@ -39,6 +41,7 @@ export function DashboardShell({
       <DashboardSidebar
         workspaces={workspaces}
         activeWorkspaceId={activeWorkspaceId}
+        showPlatformAdmin={showPlatformAdmin}
       />
       <SidebarInset className="flex max-h-svh min-h-svh flex-col overflow-hidden">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">

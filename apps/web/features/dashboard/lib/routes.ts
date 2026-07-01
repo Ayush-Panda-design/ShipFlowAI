@@ -17,6 +17,7 @@ import {
   BarChart3,
   CircleHelp,
   PackageCheck,
+  Shield,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -179,8 +180,15 @@ export const helpRoute: DashboardRoute = {
   description: "Learn how to use ShipFlow AI from start to finish",
 };
 
+export const platformAdminRoute: DashboardRoute = {
+  title: "Platform admin",
+  href: `${DASHBOARD_BASE_PATH}/admin`,
+  icon: Shield,
+  description: "Site-wide users and sign-ins (operators only)",
+};
+
 export function getDashboardRoute(pathname: string) {
-  const allRoutes = [...dashboardRoutes, helpRoute];
+  const allRoutes = [...dashboardRoutes, helpRoute, platformAdminRoute];
   return allRoutes.find(
     (route) =>
       route.href === pathname ||

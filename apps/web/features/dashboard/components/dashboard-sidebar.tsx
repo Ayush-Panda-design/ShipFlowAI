@@ -23,6 +23,7 @@ import { AutoHideScroll } from "@/components/ui/auto-hide-scroll";
 import {
   dashboardNavGroups,
   helpRoute,
+  platformAdminRoute,
   type DashboardRoute,
 } from "@/features/dashboard/lib/routes";
 import { WorkspaceSwitcher } from "@/features/dashboard/components/workspace-switcher";
@@ -31,6 +32,7 @@ import { cn } from "@/lib/utils";
 type DashboardSidebarProps = {
   workspaces: { id: string; name: string }[];
   activeWorkspaceId: string;
+  showPlatformAdmin?: boolean;
 };
 
 const GROUP_ACCENT: Record<string, string> = {
@@ -74,10 +76,14 @@ function NavItem({ route, pathname }: { route: DashboardRoute; pathname: string 
 export function DashboardSidebar({
   workspaces,
   activeWorkspaceId,
+  showPlatformAdmin = false,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const helpActive =
     pathname === helpRoute.href || pathname.startsWith(`${helpRoute.href}/`);
+  const adminActive =
+    pathname === platformAdminRoute.href ||
+    pathname.startsWith(`${platformAdminRoute.href}/`);
 
   return (
     <Sidebar collapsible="icon">
@@ -135,6 +141,37 @@ export function DashboardSidebar({
               </SidebarGroup>
             </div>
           ))}
+
+          {showPlatformAdmin ? (
+            <>
+              <SidebarSeparator className="my-2" />
+              <SidebarGroup className="mx-2 rounded-xl border border-rose-500/20 bg-gradient-to-br from-rose-500/[0.06] to-transparent p-1 shadow-sm">
+                <SidebarGroupLabel className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-rose-600/90 dark:text-rose-400/90">
+                  Operator
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={adminActive}
+                        tooltip={platformAdminRoute.description ?? platformAdminRoute.title}
+                        render={<Link href={platformAdminRoute.href} />}
+                        className={cn(
+                          "rounded-lg font-medium text-rose-700 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-300",
+                          adminActive
+                            ? "bg-rose-500/15 text-rose-700 shadow-sm dark:text-rose-200"
+                            : "bg-rose-500/5",
+                        )}
+                      >
+                        <platformAdminRoute.icon />
+                        <span>{platformAdminRoute.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </>
+          ) : null}
 
           <SidebarSeparator className="my-2" />
 
