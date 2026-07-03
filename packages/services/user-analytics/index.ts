@@ -36,6 +36,8 @@ export async function recordUserSiteEvents(
 
 export type UserAnalyticsSummary = {
   totalTimeMs: number;
+  sessionTimeMs: number;
+  trackedTimeMs: number;
   totalVisits: number;
   totalPageViews: number;
   totalActions: number;
@@ -83,11 +85,21 @@ export async function getUserAnalytics(
 ): Promise<UserAnalyticsSummary> {
   const eventLimit = options?.eventLimit ?? 100;
 
-  const events = await prisma.userSiteEvent.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 5000,
-  });
+  const [events, signInSessions] = await Promise.all([
+    prisma.userSiteEvent.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 5000,
+    }),
+    getUserSignInSessions(userId),
+  ]);
+
+  const sessionTimeMs = signInSessions.reduce(
+    (sum, session) => sum + session.activityDurationMs,
+    0,
+  );
+  const trackedTimeMs = sumDuration(events);
+  const totalTimeMs = trackedTimeMs > 0 ? trackedTimeMs : sessionTimeMs;
 
   const pageMap = new Map<
     string,
@@ -195,7 +207,9 @@ export async function getUserAnalytics(
   }));
 
   return {
-    totalTimeMs: sumDuration(events),
+    totalTimeMs,
+    sessionTimeMs,
+    trackedTimeMs,
     totalVisits: visitMap.size,
     totalPageViews,
     totalActions,
@@ -208,25 +222,65 @@ export async function getUserAnalytics(
 
 export async function getUsersTimeSummary(
   userIds: string[],
-): Promise<Map<string, number>> {
+): Promise<Map<string, { trackedTimeMs: number; sessionTimeMs: number; totalTimeMs: number }>> {
   if (userIds.length === 0) {
     return new Map();
   }
 
-  const events = await prisma.userSiteEvent.findMany({
-    where: {
-      userId: { in: userIds },
-      type: { in: ["page_view", "heartbeat"] },
-    },
-    select: {
-      userId: true,
-      durationMs: true,
-    },
-  });
+  const [events, sessions] = await Promise.all([
+    prisma.userSiteEvent.findMany({
+      where: {
+        userId: { in: userIds },
+        type: { in: ["page_view", "heartbeat"] },
+      },
+      select: {
+        userId: true,
+        durationMs: true,
+      },
+    }),
+    prisma.session.findMany({
+      where: { userId: { in: userIds } },
+      select: {
+        userId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
 
-  const totals = new Map<string, number>();
+  const tracked = new Map<string, number>();
   for (const event of events) {
-    totals.set(event.userId, (totals.get(event.userId) ?? 0) + event.durationMs);
+    tracked.set(
+      event.userId,
+      (tracked.get(event.userId) ?? 0) + event.durationMs,
+    );
+  }
+
+  const sessionTotals = new Map<string, number>();
+  for (const session of sessions) {
+    const duration = Math.max(
+      0,
+      session.updatedAt.getTime() - session.createdAt.getTime(),
+    );
+    sessionTotals.set(
+      session.userId,
+      (sessionTotals.get(session.userId) ?? 0) + duration,
+    );
+  }
+
+  const totals = new Map<
+    string,
+    { trackedTimeMs: number; sessionTimeMs: number; totalTimeMs: number }
+  >();
+
+  for (const userId of userIds) {
+    const trackedTimeMs = tracked.get(userId) ?? 0;
+    const sessionTimeMs = sessionTotals.get(userId) ?? 0;
+    totals.set(userId, {
+      trackedTimeMs,
+      sessionTimeMs,
+      totalTimeMs: trackedTimeMs > 0 ? trackedTimeMs : sessionTimeMs,
+    });
   }
 
   return totals;

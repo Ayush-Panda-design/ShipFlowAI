@@ -151,6 +151,7 @@ export function PlatformUsersPanel({
                   <TableHead>Workspaces</TableHead>
                   <TableHead>Signed up</TableHead>
                   <TableHead>Last session</TableHead>
+                  <TableHead>Sign-ins</TableHead>
                   <TableHead>Time on site</TableHead>
                   <TableHead>Sessions</TableHead>
                   <TableHead className="text-right">Activity</TableHead>
@@ -212,10 +213,24 @@ export function PlatformUsersPanel({
                         <div className="text-[10px] opacity-70">{user.lastIp}</div>
                       ) : null}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs tabular-nums">
-                      {user.totalTimeMs > 0
-                        ? formatDuration(user.totalTimeMs)
-                        : "—"}
+                    <TableCell className="text-xs tabular-nums">
+                      {user.signInCount > 0 ? user.signInCount : "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {user.totalTimeMs > 0 ? (
+                        <div>
+                          <p className="tabular-nums">
+                            {formatDuration(user.totalTimeMs)}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {user.trackedTimeMs > 0
+                              ? "tracked"
+                              : "from sign-ins"}
+                          </p>
+                        </div>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge

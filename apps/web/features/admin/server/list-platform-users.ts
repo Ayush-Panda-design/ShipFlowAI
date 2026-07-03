@@ -14,6 +14,9 @@ export type PlatformUserRow = {
   lastSeenAt: string | null;
   lastIp: string | null;
   activeSessions: number;
+  signInCount: number;
+  sessionTimeMs: number;
+  trackedTimeMs: number;
   totalTimeMs: number;
   providers: string[];
   workspaces: { name: string; role: string }[];
@@ -59,6 +62,7 @@ export async function listPlatformUsers(): Promise<{
       sessions: {
         select: {
           createdAt: true,
+          updatedAt: true,
           expiresAt: true,
           ipAddress: true,
         },
@@ -79,6 +83,7 @@ export async function listPlatformUsers(): Promise<{
     const activeSessions = user.sessions.filter(
       (session) => session.expiresAt > now,
     ).length;
+    const time = timeSummary.get(user.id);
 
     return {
       id: user.id,
@@ -92,7 +97,10 @@ export async function listPlatformUsers(): Promise<{
       lastSeenAt: latestSession?.createdAt.toISOString() ?? null,
       lastIp: latestSession?.ipAddress ?? null,
       activeSessions,
-      totalTimeMs: timeSummary.get(user.id) ?? 0,
+      signInCount: user.sessions.length,
+      sessionTimeMs: time?.sessionTimeMs ?? 0,
+      trackedTimeMs: time?.trackedTimeMs ?? 0,
+      totalTimeMs: time?.totalTimeMs ?? 0,
       providers: [...new Set(user.accounts.map((account) => account.providerId))],
       workspaces: user.workspaceMembers.map((member) => ({
         name: member.workspace.name,
