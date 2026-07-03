@@ -76,12 +76,13 @@ export function trackUserAction(action: string, detail?: string) {
 export function SiteActivityTracker() {
   const pathname = usePathname();
   const visitIdRef = useRef<string | null>(null);
-  const pageEnteredAtRef = useRef<number>(Date.now());
+  const pageEnteredAtRef = useRef<number>(0);
   const lastPathRef = useRef<string | null>(null);
   const lastTitleRef = useRef<string | null>(null);
 
   useEffect(() => {
     visitIdRef.current = getOrCreateVisitId();
+    pageEnteredAtRef.current = Date.now();
   }, []);
 
   useEffect(() => {

@@ -2,7 +2,6 @@
 
 import { format, formatDistanceToNow } from "date-fns";
 import { BarChart3, Clock, Eye, MousePointerClick, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +48,8 @@ type AnalyticsResponse = {
   analytics: UserAnalyticsSummary;
 };
 
+export type { AnalyticsResponse };
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -84,43 +85,19 @@ export function UserActivityDetailSheet({
   user,
   open,
   onOpenChange,
+  data,
+  loading,
+  error,
+  onRefresh,
 }: {
   user: PlatformUserRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  data: AnalyticsResponse | null;
+  loading: boolean;
+  error: string | null;
+  onRefresh: () => void;
 }) {
-  const [data, setData] = useState<AnalyticsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadAnalytics = useCallback(async () => {
-    if (!user) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/admin/users/${user.id}/analytics`);
-      if (!response.ok) {
-        throw new Error("Failed to load analytics");
-      }
-      const json = (await response.json()) as AnalyticsResponse;
-      setData(json);
-    } catch {
-      setError("Could not load activity data. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (open && user) {
-      void loadAnalytics();
-    }
-  }, [open, user, loadAnalytics]);
-
   const analytics = data?.analytics;
   const maxPageTime = analytics?.pageBreakdown[0]?.timeMs ?? 1;
 
@@ -152,7 +129,7 @@ export function UserActivityDetailSheet({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => void loadAnalytics()}
+                onClick={onRefresh}
                 disabled={loading}
               >
                 <RefreshCw
