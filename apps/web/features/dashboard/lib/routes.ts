@@ -184,7 +184,7 @@ export const platformAdminRoute: DashboardRoute = {
   title: "Platform admin",
   href: `${DASHBOARD_BASE_PATH}/admin`,
   icon: Shield,
-  description: "Site-wide users and sign-ins (operators only)",
+  description: "Site-wide users, sign-ins, and activity analytics (operators only)",
 };
 
 export function getDashboardRoute(pathname: string) {

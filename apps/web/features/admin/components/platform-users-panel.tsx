@@ -1,7 +1,11 @@
+"use client";
+
 import { formatDistanceToNow } from "date-fns";
+import { useCallback, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,6 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  UserActivityDetailSheet,
+  type AnalyticsResponse,
+} from "@/features/admin/components/user-activity-detail-sheet";
+import { formatDuration } from "@/features/admin/lib/format-duration";
 import type { PlatformUserRow } from "@/features/admin/server/list-platform-users";
 
 function initials(name: string) {
@@ -43,12 +52,57 @@ export function PlatformUsersPanel({
   users: PlatformUserRow[];
   total: number;
 }) {
+  const [selectedUser, setSelectedUser] = useState<PlatformUserRow | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsResponse | null>(
+    null,
+  );
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const activeNow = users.filter((user) => user.activeSessions > 0).length;
   const withGitHub = users.filter((user) => user.githubLogin).length;
+  const totalSiteTimeMs = users.reduce(
+    (sum, user) => sum + user.totalTimeMs,
+    0,
+  );
+
+  const loadUserAnalytics = useCallback(async (userId: string) => {
+    setAnalyticsLoading(true);
+    setAnalyticsError(null);
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/analytics`);
+      if (!response.ok) {
+        throw new Error("Failed to load analytics");
+      }
+      const json = (await response.json()) as AnalyticsResponse;
+      setAnalyticsData(json);
+    } catch {
+      setAnalyticsError("Could not load activity data. Try again.");
+      setAnalyticsData(null);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
+  function handleSheetOpenChange(open: boolean) {
+    setSheetOpen(open);
+    if (!open) {
+      setAnalyticsData(null);
+      setAnalyticsError(null);
+      setAnalyticsLoading(false);
+    }
+  }
+
+  function openUserActivity(user: PlatformUserRow) {
+    setSelectedUser(user);
+    setSheetOpen(true);
+    void loadUserAnalytics(user.id);
+  }
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total sign-ups</CardDescription>
@@ -65,6 +119,14 @@ export function PlatformUsersPanel({
           <CardHeader className="pb-2">
             <CardDescription>Signed in with GitHub</CardDescription>
             <CardTitle className="text-3xl tabular-nums">{withGitHub}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total time on site</CardDescription>
+            <CardTitle className="text-3xl tabular-nums">
+              {formatDuration(totalSiteTimeMs)}
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -89,7 +151,9 @@ export function PlatformUsersPanel({
                   <TableHead>Workspaces</TableHead>
                   <TableHead>Signed up</TableHead>
                   <TableHead>Last session</TableHead>
+                  <TableHead>Time on site</TableHead>
                   <TableHead>Sessions</TableHead>
+                  <TableHead className="text-right">Activity</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -148,12 +212,26 @@ export function PlatformUsersPanel({
                         <div className="text-[10px] opacity-70">{user.lastIp}</div>
                       ) : null}
                     </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs tabular-nums">
+                      {user.totalTimeMs > 0
+                        ? formatDuration(user.totalTimeMs)
+                        : "—"}
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={user.activeSessions > 0 ? "default" : "secondary"}
                       >
                         {user.activeSessions} active
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openUserActivity(user)}
+                      >
+                        View details
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -162,6 +240,20 @@ export function PlatformUsersPanel({
           )}
         </CardContent>
       </Card>
+
+      <UserActivityDetailSheet
+        user={selectedUser}
+        open={sheetOpen}
+        onOpenChange={handleSheetOpenChange}
+        data={analyticsData}
+        loading={analyticsLoading}
+        error={analyticsError}
+        onRefresh={() => {
+          if (selectedUser) {
+            void loadUserAnalytics(selectedUser.id);
+          }
+        }}
+      />
     </div>
   );
 }

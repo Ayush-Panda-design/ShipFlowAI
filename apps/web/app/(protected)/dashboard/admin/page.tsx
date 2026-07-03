@@ -11,7 +11,8 @@ export default async function PlatformAdminPage() {
       <div>
         <h1 className="text-2xl font-semibold">Platform admin</h1>
         <p className="text-sm text-muted-foreground">
-          Site-wide user directory for ShipFlow AI operators only.
+          Site-wide user directory, sign-ins, and time-on-site analytics for
+          ShipFlow AI operators only.
         </p>
       </div>
 

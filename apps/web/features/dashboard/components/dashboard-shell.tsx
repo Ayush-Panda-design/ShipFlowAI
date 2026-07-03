@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/features/dashboard/components/dashboard-sidebar";
 import { WorkspaceSwitcher } from "@/features/dashboard/components/workspace-switcher";
+import { SiteActivityTracker } from "@/features/analytics/components/site-activity-tracker";
 import { AutoHideScroll } from "@/components/ui/auto-hide-scroll";
 import { getDashboardRoute } from "@/features/dashboard/lib/routes";
 import { usePathname } from "next/navigation";
@@ -38,6 +39,7 @@ export function DashboardShell({
 
   return (
     <SidebarProvider>
+      <SiteActivityTracker />
       <DashboardSidebar
         workspaces={workspaces}
         activeWorkspaceId={activeWorkspaceId}

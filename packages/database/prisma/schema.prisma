@@ -23,8 +23,30 @@ model User {
   featureRequests   FeatureRequest[] @relation("FeatureRequestCreator")
   releaseApprovals  ReleaseApproval[]
   planApprovals     PlanApproval[]
+  siteEvents        UserSiteEvent[]
 
   @@map("user")
+}
+
+model UserSiteEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  visitId    String
+  type       String
+  path       String?
+  pageTitle  String?
+  action     String?
+  detail     String?  @db.Text
+  durationMs Int      @default(0)
+  metadata   String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, visitId])
+  @@index([visitId])
+  @@map("user_site_event")
 }
 
 model Session {

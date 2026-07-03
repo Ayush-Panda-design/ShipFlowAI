@@ -14,6 +14,7 @@ export * from "./repository/installation-sync";
 export * from "./billing/subscription-expiry";
 export * from "./pull-request";
 export * from "./activity";
+export * from "./user-analytics";
 export * from "./review-rules";
 export * from "./review";
 export * from "./sync-run";
