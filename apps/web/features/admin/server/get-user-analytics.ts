@@ -1,4 +1,4 @@
-import { getUserAnalytics } from "@repo/services";
+import { getUserAnalytics, getUserSignInSessions } from "@repo/services";
 
 export async function fetchUserAnalytics(userId: string) {
   const user = await import("@/lib/db").then(({ prisma }) =>
@@ -18,7 +18,10 @@ export async function fetchUserAnalytics(userId: string) {
     return null;
   }
 
-  const analytics = await getUserAnalytics(userId);
+  const [analytics, signInSessions] = await Promise.all([
+    getUserAnalytics(userId),
+    getUserSignInSessions(userId),
+  ]);
 
   return {
     user: {
@@ -29,5 +32,6 @@ export async function fetchUserAnalytics(userId: string) {
       signedUpAt: user.createdAt.toISOString(),
     },
     analytics,
+    signInSessions,
   };
 }
