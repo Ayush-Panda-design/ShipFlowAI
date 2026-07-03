@@ -1,5 +1,6 @@
 import { githubLoginFromUserEmail } from "@/lib/platform-admin";
 import { prisma } from "@/lib/db";
+import { getUsersTimeSummary } from "@repo/services";
 
 export type PlatformUserRow = {
   id: string;
@@ -13,6 +14,7 @@ export type PlatformUserRow = {
   lastSeenAt: string | null;
   lastIp: string | null;
   activeSessions: number;
+  totalTimeMs: number;
   providers: string[];
   workspaces: { name: string; role: string }[];
   hasGitHubApp: boolean;
@@ -65,6 +67,8 @@ export async function listPlatformUsers(): Promise<{
     },
   });
 
+  const timeSummary = await getUsersTimeSummary(users.map((user) => user.id));
+
   const rows: PlatformUserRow[] = users.map((user) => {
     const githubLogin =
       githubLoginFromUserEmail(user.email) ??
@@ -88,6 +92,7 @@ export async function listPlatformUsers(): Promise<{
       lastSeenAt: latestSession?.createdAt.toISOString() ?? null,
       lastIp: latestSession?.ipAddress ?? null,
       activeSessions,
+      totalTimeMs: timeSummary.get(user.id) ?? 0,
       providers: [...new Set(user.accounts.map((account) => account.providerId))],
       workspaces: user.workspaceMembers.map((member) => ({
         name: member.workspace.name,
