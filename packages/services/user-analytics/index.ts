@@ -231,3 +231,72 @@ export async function getUsersTimeSummary(
 
   return totals;
 }
+
+export type SignInSessionRow = {
+  id: string;
+  signedInAt: string;
+  lastActiveAt: string;
+  expiresAt: string;
+  isActive: boolean;
+  activityDurationMs: number;
+  ipAddress: string | null;
+  userAgent: string | null;
+  deviceLabel: string;
+};
+
+function summarizeUserAgent(userAgent: string | null) {
+  if (!userAgent) {
+    return "Unknown device";
+  }
+
+  if (userAgent.includes("Edg/")) {
+    return "Microsoft Edge";
+  }
+  if (userAgent.includes("Chrome/") && !userAgent.includes("Edg/")) {
+    return "Chrome";
+  }
+  if (userAgent.includes("Firefox/")) {
+    return "Firefox";
+  }
+  if (userAgent.includes("Safari/") && !userAgent.includes("Chrome/")) {
+    return "Safari";
+  }
+
+  return userAgent.length > 48 ? `${userAgent.slice(0, 48)}…` : userAgent;
+}
+
+export async function getUserSignInSessions(
+  userId: string,
+  limit = 50,
+): Promise<SignInSessionRow[]> {
+  const now = new Date();
+
+  const sessions = await prisma.session.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      expiresAt: true,
+      ipAddress: true,
+      userAgent: true,
+    },
+  });
+
+  return sessions.map((session) => ({
+    id: session.id,
+    signedInAt: session.createdAt.toISOString(),
+    lastActiveAt: session.updatedAt.toISOString(),
+    expiresAt: session.expiresAt.toISOString(),
+    isActive: session.expiresAt > now,
+    activityDurationMs: Math.max(
+      0,
+      session.updatedAt.getTime() - session.createdAt.getTime(),
+    ),
+    ipAddress: session.ipAddress,
+    userAgent: session.userAgent,
+    deviceLabel: summarizeUserAgent(session.userAgent),
+  }));
+}

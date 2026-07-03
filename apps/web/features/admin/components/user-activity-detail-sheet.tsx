@@ -1,7 +1,13 @@
 "use client";
 
 import { format, formatDistanceToNow } from "date-fns";
-import { BarChart3, Clock, Eye, MousePointerClick, RefreshCw } from "lucide-react";
+import {
+  BarChart3,
+  Clock,
+  Eye,
+  LogIn,
+  RefreshCw,
+} from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +40,7 @@ import {
   formatDuration,
   formatEventType,
 } from "@/features/admin/lib/format-duration";
-import type { UserAnalyticsSummary } from "@repo/services";
+import type { SignInSessionRow, UserAnalyticsSummary } from "@repo/services";
 import type { PlatformUserRow } from "@/features/admin/server/list-platform-users";
 
 type AnalyticsResponse = {
@@ -46,6 +52,7 @@ type AnalyticsResponse = {
     signedUpAt: string;
   };
   analytics: UserAnalyticsSummary;
+  signInSessions: SignInSessionRow[];
 };
 
 export type { AnalyticsResponse };
@@ -99,7 +106,13 @@ export function UserActivityDetailSheet({
   onRefresh: () => void;
 }) {
   const analytics = data?.analytics;
+  const signInSessions = data?.signInSessions ?? [];
   const maxPageTime = analytics?.pageBreakdown[0]?.timeMs ?? 1;
+  const hasSiteAnalytics =
+    analytics &&
+    (analytics.totalTimeMs > 0 ||
+      analytics.totalPageViews > 0 ||
+      analytics.recentEvents.length > 0);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -107,7 +120,8 @@ export function UserActivityDetailSheet({
         <SheetHeader>
           <SheetTitle>User activity</SheetTitle>
           <SheetDescription>
-            Time on site and detailed breakdown of what this user did.
+            Sign-in history (all time) and on-site activity (since tracking was
+            enabled).
           </SheetDescription>
         </SheetHeader>
 
@@ -141,51 +155,123 @@ export function UserActivityDetailSheet({
 
             {error ? (
               <p className="text-sm text-destructive">{error}</p>
-            ) : loading && !analytics ? (
+            ) : loading && !data ? (
               <p className="text-sm text-muted-foreground">Loading activity…</p>
-            ) : analytics ? (
+            ) : data ? (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <SummaryCard
                     label="Total time on site"
-                    value={formatDuration(analytics.totalTimeMs)}
+                    value={formatDuration(analytics?.totalTimeMs ?? 0)}
                     icon={Clock}
                   />
                   <SummaryCard
-                    label="Visit sessions"
-                    value={analytics.totalVisits}
-                    icon={BarChart3}
+                    label="Sign-in sessions"
+                    value={signInSessions.length}
+                    icon={LogIn}
                   />
                   <SummaryCard
                     label="Page views"
-                    value={analytics.totalPageViews}
+                    value={analytics?.totalPageViews ?? 0}
                     icon={Eye}
                   />
                   <SummaryCard
-                    label="Actions tracked"
-                    value={analytics.totalActions}
-                    icon={MousePointerClick}
+                    label="Browser visits"
+                    value={analytics?.totalVisits ?? 0}
+                    icon={BarChart3}
                   />
                 </div>
 
-                {analytics.lastActiveAt ? (
+                {!hasSiteAnalytics ? (
                   <p className="text-xs text-muted-foreground">
-                    Last active{" "}
+                    Page-level activity is only recorded after on-site tracking
+                    was enabled. Sign-in history below includes all prior
+                    sessions still stored in the database.
+                  </p>
+                ) : null}
+
+                {analytics?.lastActiveAt ? (
+                  <p className="text-xs text-muted-foreground">
+                    Last tracked activity{" "}
                     {formatDistanceToNow(new Date(analytics.lastActiveAt), {
                       addSuffix: true,
                     })}
                   </p>
                 ) : null}
 
-                <Tabs defaultValue="pages">
-                  <TabsList className="grid w-full grid-cols-3">
+                <Tabs defaultValue={signInSessions.length > 0 ? "sign-ins" : "pages"}>
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="sign-ins">Sign-ins</TabsTrigger>
                     <TabsTrigger value="pages">Pages</TabsTrigger>
                     <TabsTrigger value="timeline">Timeline</TabsTrigger>
                     <TabsTrigger value="visits">Visits</TabsTrigger>
                   </TabsList>
 
+                  <TabsContent value="sign-ins" className="mt-4">
+                    {signInSessions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No sign-in sessions recorded.
+                      </p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Signed in</TableHead>
+                            <TableHead>Device</TableHead>
+                            <TableHead>IP</TableHead>
+                            <TableHead>Active period</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {signInSessions.map((session) => (
+                            <TableRow key={session.id}>
+                              <TableCell className="whitespace-nowrap text-xs">
+                                <p>
+                                  {format(
+                                    new Date(session.signedInAt),
+                                    "MMM d, yyyy · HH:mm",
+                                  )}
+                                </p>
+                                <p className="text-muted-foreground">
+                                  Last active{" "}
+                                  {formatDistanceToNow(
+                                    new Date(session.lastActiveAt),
+                                    { addSuffix: true },
+                                  )}
+                                </p>
+                              </TableCell>
+                              <TableCell className="max-w-[140px] text-xs">
+                                <p className="truncate font-medium">
+                                  {session.deviceLabel}
+                                </p>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {session.ipAddress ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-xs tabular-nums">
+                                {session.activityDurationMs > 0
+                                  ? formatDuration(session.activityDurationMs)
+                                  : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    session.isActive ? "default" : "secondary"
+                                  }
+                                >
+                                  {session.isActive ? "Active" : "Ended"}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </TabsContent>
+
                   <TabsContent value="pages" className="mt-4 space-y-3">
-                    {analytics.pageBreakdown.length === 0 ? (
+                    {!analytics || analytics.pageBreakdown.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         No page activity recorded yet.
                       </p>
@@ -220,7 +306,7 @@ export function UserActivityDetailSheet({
                   </TabsContent>
 
                   <TabsContent value="timeline" className="mt-4">
-                    {analytics.recentEvents.length === 0 ? (
+                    {!analytics || analytics.recentEvents.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         No events recorded yet.
                       </p>
@@ -275,7 +361,7 @@ export function UserActivityDetailSheet({
                   </TabsContent>
 
                   <TabsContent value="visits" className="mt-4 space-y-3">
-                    {analytics.visitSessions.length === 0 ? (
+                    {!analytics || analytics.visitSessions.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         No visit sessions recorded yet.
                       </p>
