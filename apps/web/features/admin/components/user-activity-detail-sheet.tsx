@@ -110,7 +110,7 @@ export function UserActivityDetailSheet({
   const maxPageTime = analytics?.pageBreakdown[0]?.timeMs ?? 1;
   const hasSiteAnalytics =
     analytics &&
-    (analytics.totalTimeMs > 0 ||
+    (analytics.trackedTimeMs > 0 ||
       analytics.totalPageViews > 0 ||
       analytics.recentEvents.length > 0);
 
@@ -182,11 +182,14 @@ export function UserActivityDetailSheet({
                   />
                 </div>
 
-                {!hasSiteAnalytics ? (
+                {!hasSiteAnalytics && signInSessions.length > 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Page-level activity is only recorded after on-site tracking
-                    was enabled. Sign-in history below includes all prior
-                    sessions still stored in the database.
+                    Total time is estimated from sign-in sessions. Page-level
+                    activity is only recorded after on-site tracking was enabled.
+                  </p>
+                ) : !hasSiteAnalytics ? (
+                  <p className="text-xs text-muted-foreground">
+                    No sign-in or page activity recorded for this user yet.
                   </p>
                 ) : null}
 
