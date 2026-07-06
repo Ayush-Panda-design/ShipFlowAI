@@ -1,5 +1,7 @@
 import { prisma } from "@repo/database";
 
+import { backfillMissingSessionLocations } from "../ip-geolocation";
+
 export type SiteEventInput = {
   visitId: string;
   type: "page_view" | "heartbeat" | "action" | "session_end";
@@ -359,26 +361,31 @@ export async function getUserSignInSessions(
     },
   });
 
-  return sessions.map((session) => ({
-    id: session.id,
-    signedInAt: session.createdAt.toISOString(),
-    lastActiveAt: session.updatedAt.toISOString(),
-    expiresAt: session.expiresAt.toISOString(),
-    isActive: session.expiresAt > now,
-    activityDurationMs: Math.max(
-      0,
-      session.updatedAt.getTime() - session.createdAt.getTime(),
-    ),
-    ipAddress: session.ipAddress,
-    city: session.city,
-    region: session.region,
-    country: session.country,
-    locationLabel: formatSignInLocation({
-      city: session.city,
-      region: session.region,
-      country: session.country,
-    }),
-    userAgent: session.userAgent,
-    deviceLabel: summarizeUserAgent(session.userAgent),
-  }));
+  const backfilled = await backfillMissingSessionLocations(sessions);
+
+  return sessions.map((session) => {
+    const location = backfilled.get(session.id);
+    const city = location?.city ?? session.city;
+    const region = location?.region ?? session.region;
+    const country = location?.country ?? session.country;
+
+    return {
+      id: session.id,
+      signedInAt: session.createdAt.toISOString(),
+      lastActiveAt: session.updatedAt.toISOString(),
+      expiresAt: session.expiresAt.toISOString(),
+      isActive: session.expiresAt > now,
+      activityDurationMs: Math.max(
+        0,
+        session.updatedAt.getTime() - session.createdAt.getTime(),
+      ),
+      ipAddress: session.ipAddress,
+      city,
+      region,
+      country,
+      locationLabel: formatSignInLocation({ city, region, country }),
+      userAgent: session.userAgent,
+      deviceLabel: summarizeUserAgent(session.userAgent),
+    };
+  });
 }

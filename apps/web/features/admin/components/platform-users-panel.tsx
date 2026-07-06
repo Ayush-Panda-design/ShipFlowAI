@@ -151,6 +151,7 @@ export function PlatformUsersPanel({
                   <TableHead>Workspaces</TableHead>
                   <TableHead>Signed up</TableHead>
                   <TableHead>Last session</TableHead>
+                  <TableHead>Location</TableHead>
                   <TableHead>Sign-ins</TableHead>
                   <TableHead>Time on site</TableHead>
                   <TableHead>Sessions</TableHead>
@@ -209,14 +210,16 @@ export function PlatformUsersPanel({
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       <div>{formatWhen(user.lastSeenAt)}</div>
-                      {user.lastLocation ? (
-                        <div className="text-[10px] opacity-90">
-                          {user.lastLocation}
-                        </div>
-                      ) : null}
                       {user.lastIp ? (
                         <div className="text-[10px] opacity-70">{user.lastIp}</div>
                       ) : null}
+                    </TableCell>
+                    <TableCell className="max-w-[180px] text-xs">
+                      {user.lastLocation ? (
+                        <p className="font-medium leading-snug">{user.lastLocation}</p>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs tabular-nums">
                       {user.signInCount > 0 ? user.signInCount : "—"}
