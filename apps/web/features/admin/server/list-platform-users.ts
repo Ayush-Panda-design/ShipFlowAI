@@ -1,6 +1,10 @@
 import { githubLoginFromUserEmail } from "@/lib/platform-admin";
 import { prisma } from "@/lib/db";
-import { formatSignInLocation, getUsersTimeSummary } from "@repo/services";
+import {
+  backfillMissingSessionLocations,
+  formatSignInLocation,
+  getUsersTimeSummary,
+} from "@repo/services";
 
 export type PlatformUserRow = {
   id: string;
@@ -62,6 +66,7 @@ export async function listPlatformUsers(): Promise<{
       },
       sessions: {
         select: {
+          id: true,
           createdAt: true,
           updatedAt: true,
           expiresAt: true,
@@ -75,6 +80,12 @@ export async function listPlatformUsers(): Promise<{
     },
   });
 
+  const latestSessions = users
+    .map((user) => user.sessions[0])
+    .filter((session): session is NonNullable<typeof session> => Boolean(session));
+
+  const backfilled = await backfillMissingSessionLocations(latestSessions);
+
   const timeSummary = await getUsersTimeSummary(users.map((user) => user.id));
 
   const rows: PlatformUserRow[] = users.map((user) => {
@@ -84,6 +95,12 @@ export async function listPlatformUsers(): Promise<{
       null;
 
     const latestSession = user.sessions[0];
+    const resolvedLocation = latestSession
+      ? backfilled.get(latestSession.id)
+      : undefined;
+    const city = resolvedLocation?.city ?? latestSession?.city ?? null;
+    const region = resolvedLocation?.region ?? latestSession?.region ?? null;
+    const country = resolvedLocation?.country ?? latestSession?.country ?? null;
     const activeSessions = user.sessions.filter(
       (session) => session.expiresAt > now,
     ).length;
@@ -101,11 +118,7 @@ export async function listPlatformUsers(): Promise<{
       lastSeenAt: latestSession?.createdAt.toISOString() ?? null,
       lastIp: latestSession?.ipAddress ?? null,
       lastLocation: latestSession
-        ? formatSignInLocation({
-            city: latestSession.city,
-            region: latestSession.region,
-            country: latestSession.country,
-          })
+        ? formatSignInLocation({ city, region, country })
         : null,
       activeSessions,
       signInCount: user.sessions.length,

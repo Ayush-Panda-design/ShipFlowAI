@@ -15,6 +15,7 @@ export * from "./billing/subscription-expiry";
 export * from "./pull-request";
 export * from "./activity";
 export * from "./user-analytics";
+export * from "./ip-geolocation";
 export * from "./review-rules";
 export * from "./review";
 export * from "./sync-run";

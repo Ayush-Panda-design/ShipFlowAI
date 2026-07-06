@@ -1,4 +1,14 @@
+import { prisma } from "@repo/database";
+
 export type IpLocation = {
+  city: string | null;
+  region: string | null;
+  country: string | null;
+};
+
+export type SessionLocationFields = {
+  id: string;
+  ipAddress: string | null;
   city: string | null;
   region: string | null;
   country: string | null;
@@ -33,6 +43,10 @@ function isPrivateIp(ip: string) {
   }
 
   return false;
+}
+
+function hasStoredLocation(session: Pick<SessionLocationFields, "city" | "region" | "country">) {
+  return Boolean(session.city || session.region || session.country);
 }
 
 type IpApiResponse = {
@@ -77,4 +91,31 @@ export async function lookupIpLocation(
   } catch {
     return null;
   }
+}
+
+export async function backfillMissingSessionLocations(
+  sessions: SessionLocationFields[],
+  options?: { limit?: number },
+): Promise<Map<string, IpLocation>> {
+  const resolved = new Map<string, IpLocation>();
+  const limit = options?.limit ?? 25;
+
+  const pending = sessions.filter(
+    (session) => session.ipAddress && !hasStoredLocation(session),
+  );
+
+  for (const session of pending.slice(0, limit)) {
+    const location = await lookupIpLocation(session.ipAddress);
+    if (!location) {
+      continue;
+    }
+
+    await prisma.session.update({
+      where: { id: session.id },
+      data: location,
+    });
+    resolved.set(session.id, location);
+  }
+
+  return resolved;
 }

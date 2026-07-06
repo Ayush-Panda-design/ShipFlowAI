@@ -10,7 +10,7 @@ import {
   getAuthProtocol,
   getAuthTrustedOrigins,
 } from "@/lib/auth-env";
-import { lookupIpLocation } from "@/lib/ip-geolocation";
+import { lookupIpLocation } from "@repo/services";
 
 const githubClientId = process.env.GITHUB_CLIENT_ID?.trim();
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
