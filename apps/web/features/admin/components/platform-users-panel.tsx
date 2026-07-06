@@ -209,6 +209,11 @@ export function PlatformUsersPanel({
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       <div>{formatWhen(user.lastSeenAt)}</div>
+                      {user.lastLocation ? (
+                        <div className="text-[10px] opacity-90">
+                          {user.lastLocation}
+                        </div>
+                      ) : null}
                       {user.lastIp ? (
                         <div className="text-[10px] opacity-70">{user.lastIp}</div>
                       ) : null}

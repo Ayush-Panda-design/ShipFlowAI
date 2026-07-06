@@ -221,6 +221,7 @@ export function UserActivityDetailSheet({
                           <TableRow>
                             <TableHead>Signed in</TableHead>
                             <TableHead>Device</TableHead>
+                            <TableHead>Location</TableHead>
                             <TableHead>IP</TableHead>
                             <TableHead>Active period</TableHead>
                             <TableHead>Status</TableHead>
@@ -247,6 +248,11 @@ export function UserActivityDetailSheet({
                               <TableCell className="max-w-[140px] text-xs">
                                 <p className="truncate font-medium">
                                   {session.deviceLabel}
+                                </p>
+                              </TableCell>
+                              <TableCell className="max-w-[160px] text-xs">
+                                <p className="truncate">
+                                  {session.locationLabel ?? "—"}
                                 </p>
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground">

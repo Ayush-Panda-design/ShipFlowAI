@@ -1,6 +1,6 @@
 import { githubLoginFromUserEmail } from "@/lib/platform-admin";
 import { prisma } from "@/lib/db";
-import { getUsersTimeSummary } from "@repo/services";
+import { formatSignInLocation, getUsersTimeSummary } from "@repo/services";
 
 export type PlatformUserRow = {
   id: string;
@@ -13,6 +13,7 @@ export type PlatformUserRow = {
   signedUpAt: string;
   lastSeenAt: string | null;
   lastIp: string | null;
+  lastLocation: string | null;
   activeSessions: number;
   signInCount: number;
   sessionTimeMs: number;
@@ -65,6 +66,9 @@ export async function listPlatformUsers(): Promise<{
           updatedAt: true,
           expiresAt: true,
           ipAddress: true,
+          city: true,
+          region: true,
+          country: true,
         },
         orderBy: { createdAt: "desc" },
       },
@@ -96,6 +100,13 @@ export async function listPlatformUsers(): Promise<{
       signedUpAt: user.createdAt.toISOString(),
       lastSeenAt: latestSession?.createdAt.toISOString() ?? null,
       lastIp: latestSession?.ipAddress ?? null,
+      lastLocation: latestSession
+        ? formatSignInLocation({
+            city: latestSession.city,
+            region: latestSession.region,
+            country: latestSession.country,
+          })
+        : null,
       activeSessions,
       signInCount: user.sessions.length,
       sessionTimeMs: time?.sessionTimeMs ?? 0,

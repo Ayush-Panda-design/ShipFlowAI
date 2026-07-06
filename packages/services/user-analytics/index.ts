@@ -11,6 +11,8 @@ export type SiteEventInput = {
   metadata?: Record<string, unknown>;
 };
 
+
+
 export async function recordUserSiteEvents(
   userId: string,
   events: SiteEventInput[],
@@ -294,9 +296,24 @@ export type SignInSessionRow = {
   isActive: boolean;
   activityDurationMs: number;
   ipAddress: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  locationLabel: string | null;
   userAgent: string | null;
   deviceLabel: string;
 };
+
+export function formatSignInLocation(parts: {
+  city: string | null;
+  region: string | null;
+  country: string | null;
+}): string | null {
+  const segments = [parts.city, parts.region, parts.country].filter(
+    (value): value is string => Boolean(value),
+  );
+  return segments.length > 0 ? segments.join(", ") : null;
+}
 
 function summarizeUserAgent(userAgent: string | null) {
   if (!userAgent) {
@@ -335,6 +352,9 @@ export async function getUserSignInSessions(
       updatedAt: true,
       expiresAt: true,
       ipAddress: true,
+      city: true,
+      region: true,
+      country: true,
       userAgent: true,
     },
   });
@@ -350,6 +370,14 @@ export async function getUserSignInSessions(
       session.updatedAt.getTime() - session.createdAt.getTime(),
     ),
     ipAddress: session.ipAddress,
+    city: session.city,
+    region: session.region,
+    country: session.country,
+    locationLabel: formatSignInLocation({
+      city: session.city,
+      region: session.region,
+      country: session.country,
+    }),
     userAgent: session.userAgent,
     deviceLabel: summarizeUserAgent(session.userAgent),
   }));

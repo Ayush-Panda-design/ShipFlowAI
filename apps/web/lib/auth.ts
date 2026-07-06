@@ -10,6 +10,7 @@ import {
   getAuthProtocol,
   getAuthTrustedOrigins,
 } from "@/lib/auth-env";
+import { lookupIpLocation } from "@/lib/ip-geolocation";
 
 const githubClientId = process.env.GITHUB_CLIENT_ID?.trim();
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
@@ -83,6 +84,42 @@ export const auth = betterAuth({
       : {}),
   },
   trustedOrigins: getAuthTrustedOrigins(),
+  session: {
+    additionalFields: {
+      city: {
+        type: "string",
+        required: false,
+      },
+      region: {
+        type: "string",
+        required: false,
+      },
+      country: {
+        type: "string",
+        required: false,
+      },
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const location = await lookupIpLocation(session.ipAddress);
+          if (!location) {
+            return;
+          }
+
+          return {
+            data: {
+              city: location.city,
+              region: location.region,
+              country: location.country,
+            },
+          };
+        },
+      },
+    },
+  },
   onAPIError: {
     errorURL: "/sign-in",
   },
