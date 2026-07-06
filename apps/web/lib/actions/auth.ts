@@ -12,6 +12,7 @@ export async function signInWithEmail(
   callbackUrl?: string
 ) {
   const safeCallbackUrl = resolveCallbackUrl(callbackUrl);
+  const requestHeaders = await headers();
 
   await auth.api.signInEmail({
     body: {
@@ -19,6 +20,7 @@ export async function signInWithEmail(
       password,
       callbackURL: safeCallbackUrl,
     },
+    headers: requestHeaders,
   });
 
   redirect(safeCallbackUrl);
@@ -31,6 +33,7 @@ export async function signUpWithEmail(
   callbackUrl?: string
 ) {
   const safeCallbackUrl = resolveCallbackUrl(callbackUrl);
+  const requestHeaders = await headers();
 
   await auth.api.signUpEmail({
     body: {
@@ -39,6 +42,7 @@ export async function signUpWithEmail(
       password,
       callbackURL: safeCallbackUrl,
     },
+    headers: requestHeaders,
   });
 
   redirect(safeCallbackUrl);
