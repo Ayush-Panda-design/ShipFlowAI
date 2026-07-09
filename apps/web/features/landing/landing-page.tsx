@@ -417,7 +417,7 @@ export function LandingPage({ isSignedIn }: LandingPageProps) {
                   <ArrowRight className="size-4" />
                 </Link>
                 <TerminalLink
-                  href="https://github.com/Ayush-Panda-design/AI-powered-Code-review"
+                  href="https://github.com/Ayush-Panda-design/ShipFlowAI"
                   variant="ghost"
                   className="px-6 py-3"
                 >
@@ -456,7 +456,7 @@ export function LandingPage({ isSignedIn }: LandingPageProps) {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
           <TerminalLogo />
           <p className="text-[10px] uppercase tracking-[0.25em] text-white/35">
-            ShipFlow AI — ChaiCode Hackathon
+            ShipFlow AI © 2026. All rights reserved.
           </p>
           <Link
             href="/tech-stack"

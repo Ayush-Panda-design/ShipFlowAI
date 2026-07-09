@@ -1,6 +1,6 @@
 # ShipFlow AI
 
-[![CI](https://github.com/Ayush-Panda-design/AI-powered-Code-review/actions/workflows/ci.yml/badge.svg)](https://github.com/Ayush-Panda-design/AI-powered-Code-review/actions/workflows/ci.yml)
+[![CI](https://github.com/Ayush-Panda-design/ShipFlowAI/actions/workflows/ci.yml/badge.svg)](https://github.com/Ayush-Panda-design/ShipFlowAI/actions/workflows/ci.yml)
 
 **From customer idea to shipped code — one calm thread your whole team can follow.**
 
@@ -10,7 +10,7 @@ ShipFlow AI is an AI-assisted product delivery platform built for the ChaiCode h
 |---|---|
 | **Website** | [https://shipflowai.in](https://shipflowai.in) |
 | **Live demo** | [https://ai-powered-code-review-web.vercel.app](https://ai-powered-code-review-web.vercel.app) |
-| **Repository** | [Ayush-Panda-design/AI-powered-Code-review](https://github.com/Ayush-Panda-design/AI-powered-Code-review) |
+| **Repository** | [Ayush-Panda-design/ShipFlowAI](https://github.com/Ayush-Panda-design/ShipFlowAI) |
 
 ---
 
