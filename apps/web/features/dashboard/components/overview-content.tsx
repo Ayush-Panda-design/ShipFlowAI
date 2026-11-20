@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { DeliveryPipeline } from "@/features/dashboard/components/delivery-pipeline";
-import { OnboardingGuide } from "@/features/dashboard/components/onboarding-guide";
+import { JourneyRail } from "@/features/dashboard/components/journey-rail";
+import type { GettingStartedJourney } from "@/features/dashboard/lib/getting-started-journey";
 import { OverviewHero } from "@/features/dashboard/components/overview-hero";
 import { OverviewMetrics } from "@/features/dashboard/components/overview-metrics";
 import { OverviewRecentReviews } from "@/features/dashboard/components/overview-recent-reviews";
@@ -13,23 +14,22 @@ import {
 } from "@/features/dashboard/components/overview-side-panels";
 import { SectionGuideCard } from "@/features/dashboard/components/section-guide-card";
 import type { OverviewData } from "@/features/dashboard/server/overview-data";
-import type { OnboardingState } from "@/features/dashboard/server/onboarding-state";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
 
 export function OverviewContent({
   data,
-  onboarding,
   userName,
+  journey,
 }: {
   data: OverviewData;
-  onboarding: OnboardingState;
   userName?: string | null;
+  journey: GettingStartedJourney;
 }) {
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 lg:gap-6">
       <OverviewHero userName={userName} />
 
-      <OnboardingGuide state={onboarding} variant="full" />
+      <JourneyRail journey={journey} />
 
       <OverviewMetrics data={data} />
 

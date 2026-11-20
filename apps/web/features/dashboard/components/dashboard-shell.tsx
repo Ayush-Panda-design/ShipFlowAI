@@ -8,7 +8,10 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { DashboardSidebar } from "@/features/dashboard/components/dashboard-sidebar";
+import {
+  DashboardSidebar,
+  type SidebarSignals,
+} from "@/features/dashboard/components/dashboard-sidebar";
 import { WorkspaceSwitcher } from "@/features/dashboard/components/workspace-switcher";
 import { SiteActivityTracker } from "@/features/analytics/components/site-activity-tracker";
 import { AutoHideScroll } from "@/components/ui/auto-hide-scroll";
@@ -25,6 +28,7 @@ type DashboardShellProps = {
   workspaces: { id: string; name: string }[];
   activeWorkspaceId: string;
   showPlatformAdmin?: boolean;
+  sidebarSignals?: SidebarSignals;
 };
 
 export function DashboardShell({
@@ -33,6 +37,7 @@ export function DashboardShell({
   workspaces,
   activeWorkspaceId,
   showPlatformAdmin = false,
+  sidebarSignals,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const currentRoute = getDashboardRoute(pathname);
@@ -42,6 +47,7 @@ export function DashboardShell({
       <SiteActivityTracker />
       <DashboardSidebar
         user={user}
+        signals={sidebarSignals}
         workspaces={workspaces}
         activeWorkspaceId={activeWorkspaceId}
         showPlatformAdmin={showPlatformAdmin}

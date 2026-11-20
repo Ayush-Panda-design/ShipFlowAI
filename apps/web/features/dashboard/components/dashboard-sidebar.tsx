@@ -37,7 +37,16 @@ type SidebarUser = {
   image?: string | null;
 };
 
+export type SidebarSignals = {
+  /** Route the user should visit next in the guided journey (gets a "Next" marker). */
+  nextHref: string | null;
+  nextLabel: string | null;
+  /** Count badges keyed by route href (shown only when > 0). */
+  badges: Record<string, number>;
+};
+
 type DashboardSidebarProps = {
+  signals?: SidebarSignals;
   user?: SidebarUser;
   workspaces: { id: string; name: string }[];
   activeWorkspaceId: string;
@@ -52,7 +61,17 @@ function isRouteActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function NavItem({ route, pathname }: { route: DashboardRoute; pathname: string }) {
+function NavItem({
+  route,
+  pathname,
+  signals,
+}: {
+  route: DashboardRoute;
+  pathname: string;
+  signals?: SidebarSignals;
+}) {
+  const isNext = Boolean(signals?.nextHref) && signals?.nextHref === route.href;
+  const badge = signals?.badges[route.href] ?? 0;
   const isActive = isRouteActive(pathname, route.href);
   const Icon = route.icon;
 
@@ -82,6 +101,19 @@ function NavItem({ route, pathname }: { route: DashboardRoute; pathname: string 
           )}
         />
         <span>{route.title}</span>
+        {badge > 0 ? (
+          <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1.5 text-[10.5px] font-semibold tabular-nums text-primary-foreground group-data-[collapsible=icon]:hidden">
+            {badge}
+          </span>
+        ) : isNext ? (
+          <span
+            className="ml-auto inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand group-data-[collapsible=icon]:hidden"
+            title={signals?.nextLabel ?? "Next step"}
+          >
+            <span className="size-1.5 rounded-full bg-brand motion-safe:animate-pulse" />
+            Next
+          </span>
+        ) : null}
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
@@ -95,6 +127,7 @@ function getInitials(name?: string | null, email?: string | null) {
 }
 
 export function DashboardSidebar({
+  signals,
   user,
   workspaces,
   activeWorkspaceId,
@@ -144,7 +177,7 @@ export function DashboardSidebar({
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
                   {group.routes.map((route) => (
-                    <NavItem key={route.href} route={route} pathname={pathname} />
+                    <NavItem key={route.href} route={route} pathname={pathname} signals={signals} />
                   ))}
                 </SidebarMenu>
               </SidebarGroupContent>

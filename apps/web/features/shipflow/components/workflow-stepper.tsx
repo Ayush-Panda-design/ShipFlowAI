@@ -35,27 +35,27 @@ const TONE_STYLES: Record<
   { container: string; dot: string; title: string }
 > = {
   info: {
-    container: "border-border bg-muted/40",
+    container: "border-border bg-surface-sunken/70",
     dot: "bg-muted-foreground",
     title: "text-foreground",
   },
   action: {
-    container: "border-status-progress/40 bg-status-progress/5",
-    dot: "bg-status-progress",
+    container: "border-brand/20 bg-brand-soft/70",
+    dot: "bg-brand motion-safe:animate-pulse",
     title: "text-foreground",
   },
   running: {
-    container: "border-status-warning/40 bg-status-warning/5",
+    container: "border-amber/40 bg-amber-soft",
     dot: "bg-status-warning animate-pulse",
     title: "text-foreground",
   },
   success: {
-    container: "border-status-success/40 bg-status-success/5",
+    container: "border-success/25 bg-success-soft",
     dot: "bg-status-success",
     title: "text-foreground",
   },
   blocked: {
-    container: "border-destructive/40 bg-destructive/5",
+    container: "border-danger/25 bg-danger-soft",
     dot: "bg-destructive",
     title: "text-foreground",
   },
@@ -79,7 +79,7 @@ export function WorkflowStepper({
       <CardContent className="space-y-5 pt-6">
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="sf-eyebrow">
               Delivery progress
             </span>
             <span className="text-xs font-medium text-muted-foreground">
@@ -89,12 +89,12 @@ export function WorkflowStepper({
           <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
             {showIndeterminate ? (
               <div
-                className="absolute inset-y-0 w-1/3 rounded-full bg-gradient-to-r from-status-success via-status-warning to-status-progress motion-safe:animate-[task-gen-slide_1.4s_ease-in-out_infinite]"
+                className="absolute inset-y-0 w-1/3 rounded-full bg-gradient-to-r from-brand via-amber to-amber motion-safe:animate-[task-gen-slide_1.4s_ease-in-out_infinite]"
                 aria-hidden
               />
             ) : (
               <div
-                className="h-full rounded-full bg-gradient-to-r from-status-success via-status-warning to-status-progress transition-all duration-700 ease-out"
+                className="h-full rounded-full bg-gradient-to-r from-brand via-amber to-amber transition-all duration-700 ease-out"
                 style={{ width: `${journey.percent}%` }}
               />
             )}
@@ -119,7 +119,7 @@ export function WorkflowStepper({
                       index === 0
                         ? "bg-transparent"
                         : isDone || isCurrent
-                          ? "bg-status-success/60"
+                          ? "bg-success/60"
                           : "bg-border",
                     )}
                   />
@@ -127,16 +127,16 @@ export function WorkflowStepper({
                     className={cn(
                       "flex size-9 shrink-0 items-center justify-center rounded-full border-2 transition-all",
                       isDone &&
-                        "border-status-success bg-status-success text-white",
+                        "border-success bg-success text-white",
                       isCurrent &&
-                        "border-status-progress bg-status-progress/10 text-status-progress ring-4 ring-status-progress/15",
+                        "border-brand bg-brand-soft text-brand shadow-[0_0_0_5px_var(--brand-soft)] motion-safe:animate-[sf-ring_2.4s_ease-in-out_infinite]",
                       !isDone &&
                         !isCurrent &&
                         "border-border bg-muted/40 text-muted-foreground",
                     )}
                   >
                     {isDone ? (
-                      <Check className="size-4" strokeWidth={3} />
+                      <Check className="size-4 sf-pop" strokeWidth={3} />
                     ) : (
                       <Icon className="size-4" />
                     )}
@@ -147,7 +147,7 @@ export function WorkflowStepper({
                       index === journey.milestones.length - 1
                         ? "bg-transparent"
                         : isDone
-                          ? "bg-status-success/60"
+                          ? "bg-success/60"
                           : "bg-border",
                     )}
                   />
@@ -165,7 +165,7 @@ export function WorkflowStepper({
                   >
                     {milestone.label}
                   </p>
-                  <p className="hidden truncate text-[10px] text-muted-foreground sm:block">
+                  <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
                     {milestone.description}
                   </p>
                 </div>
@@ -184,11 +184,11 @@ export function WorkflowStepper({
             className={cn("mt-1.5 size-2 shrink-0 rounded-full", tone.dot)}
           />
           <div className="min-w-0">
-            <p className={cn("text-sm font-semibold", tone.title)}>
+            <p className={cn("text-sm font-semibold", tone.title)} aria-live="polite">
               {journey.nextAction.inFlight ? "In progress · " : "Next step · "}
               {journey.nextAction.title}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
               {journey.nextAction.hint}
             </p>
           </div>

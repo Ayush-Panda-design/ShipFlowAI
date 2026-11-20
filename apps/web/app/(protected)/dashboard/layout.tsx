@@ -3,6 +3,8 @@ import { OnboardingBanner } from "@/features/dashboard/components/onboarding-ban
 import { ensureWorkspaceAction } from "@/lib/actions/shipflow";
 import { requireSession } from "@/lib/auth-session";
 import { isPlatformAdmin } from "@/lib/platform-admin";
+import { getJourneySignals } from "@/features/dashboard/server/journey-signals";
+import { getGettingStartedJourney } from "@/features/dashboard/lib/getting-started-journey";
 import { getOnboardingState } from "@/features/dashboard/server/onboarding-state";
 import { listWorkspacesForUser } from "@repo/services";
 
@@ -16,6 +18,16 @@ export default async function DashboardLayout({
   const workspaces = await listWorkspacesForUser(session.user.id);
   const onboarding = await getOnboardingState(session.user.id, activeWorkspace.id);
   const showPlatformAdmin = await isPlatformAdmin(session.user.id);
+  const signals = await getJourneySignals(session.user.id, activeWorkspace.id);
+  const journey = getGettingStartedJourney(signals);
+  const sidebarSignals = {
+    nextHref: journey.next ? journey.stages[journey.currentIndex]!.href : null,
+    nextLabel: journey.next?.title ?? null,
+    badges: {
+      "/dashboard/approvals": signals.awaitingApprovalCount,
+      "/dashboard/pull-requests": signals.openPullRequests,
+    } as Record<string, number>,
+  };
 
   return (
     <DashboardShell
@@ -26,6 +38,7 @@ export default async function DashboardLayout({
       }))}
       activeWorkspaceId={activeWorkspace.id}
       showPlatformAdmin={showPlatformAdmin}
+      sidebarSignals={sidebarSignals}
     >
       <OnboardingBanner state={onboarding} />
       {children}
