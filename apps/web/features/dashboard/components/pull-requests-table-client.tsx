@@ -2,20 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { GitPullRequest, Bot, AlertTriangle } from "lucide-react";
+import { Bot, AlertTriangle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
   DashboardListFilters,
   filterBySearch,
 } from "@/features/dashboard/components/dashboard-list-filters";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
+import { IllustratedEmptyState } from "@/components/illustrations/empty-state";
 import { DASHBOARD_BASE_PATH } from "@/features/dashboard/lib/routes";
 import { RunReviewButton } from "@/features/dashboard/components/run-review-button";
 import {
@@ -293,23 +287,22 @@ export function PullRequestsTableClient({
     return (
       <div className="flex flex-col gap-4">
         {connectedReposCount === 0 ? <ConnectReposFirstBanner /> : null}
-        <Empty className="border border-dashed">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <GitPullRequest />
-            </EmptyMedia>
-            <EmptyTitle>No pull requests yet</EmptyTitle>
-            <EmptyDescription>
-              {connectedReposCount === 0
+        <div className="sf-panel">
+          <IllustratedEmptyState
+            kind="pull-requests"
+            title="No pull requests yet"
+            description={
+              connectedReposCount === 0
                 ? "Connect a repository first, then sync open PRs from GitHub."
-                : "Open a pull request on a connected repository, or sync existing open PRs from GitHub."}
-            </EmptyDescription>
-          </EmptyHeader>
-          <SyncPullRequestsButton
-            className="items-center"
-            connectedReposCount={connectedReposCount}
-          />
-        </Empty>
+                : "Open a pull request on a connected repository, or sync existing open PRs from GitHub."
+            }
+          >
+            <SyncPullRequestsButton
+              className="items-center"
+              connectedReposCount={connectedReposCount}
+            />
+          </IllustratedEmptyState>
+        </div>
       </div>
     );
   }

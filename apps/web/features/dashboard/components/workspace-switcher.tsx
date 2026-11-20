@@ -32,7 +32,7 @@ export function WorkspaceSwitcher({
 
   if (workspaces.length <= 1) {
     return (
-      <p className="truncate px-2 text-xs text-muted-foreground">
+      <p className="truncate text-[0.8125rem] font-medium leading-tight">
         {workspaces[0]?.name ?? "Workspace"}
       </p>
     );
@@ -58,8 +58,10 @@ export function WorkspaceSwitcher({
         });
       }}
     >
-      <SelectTrigger className="h-8 w-full border-0 bg-transparent shadow-none">
-        <SelectValue placeholder="Workspace" />
+      <SelectTrigger className="mt-0.5 h-auto w-full justify-between border-0 bg-transparent p-0 text-[0.8125rem] font-medium leading-tight shadow-none hover:bg-transparent focus-visible:ring-0">
+        <SelectValue placeholder="Workspace">
+          {workspaces.find((workspace) => workspace.id === activeWorkspaceId)?.name}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {workspaces.map((workspace) => (

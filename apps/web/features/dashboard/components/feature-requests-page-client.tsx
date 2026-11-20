@@ -11,6 +11,7 @@ import {
   type LastFeature,
 } from "@/features/shipflow/lib/last-feature";
 
+import { IllustratedEmptyState } from "@/components/illustrations/empty-state";
 import { Button } from "@/components/ui/button";
 import { ButtonLoadingLabel } from "@/components/ui/loading-illustration";
 import { Card, CardContent } from "@/components/ui/card";
@@ -234,11 +235,16 @@ export function FeatureRequestsPageClient({
             className="py-8"
           />
         ) : filteredFeatures.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {features.length === 0
-              ? "No feature requests in this project yet."
-              : "No features match your filters."}
-          </p>
+          features.length === 0 ? (
+            <IllustratedEmptyState
+              kind="features"
+              size="compact"
+              title="No feature requests yet"
+              description="No feature requests in this project yet. Capture an idea to start the path to production."
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">No features match your filters.</p>
+          )
         ) : (
           filteredFeatures.map((feature) => (
             <Link

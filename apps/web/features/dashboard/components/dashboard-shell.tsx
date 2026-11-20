@@ -41,18 +41,19 @@ export function DashboardShell({
     <SidebarProvider>
       <SiteActivityTracker />
       <DashboardSidebar
+        user={user}
         workspaces={workspaces}
         activeWorkspaceId={activeWorkspaceId}
         showPlatformAdmin={showPlatformAdmin}
       />
       <SidebarInset className="flex max-h-svh min-h-svh flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/80 bg-background/80 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <div className="flex flex-1 flex-col">
-            <h1 className="text-sm font-semibold">
+            <p className="text-sm font-semibold tracking-tight">
               {currentRoute?.title ?? "Dashboard"}
-            </h1>
+            </p>
             {currentRoute?.description ? (
               <p className="text-xs text-muted-foreground">
                 {currentRoute.description}

@@ -1,25 +1,14 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
+import { ChevronRight, GitPullRequest, OctagonAlert } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { IllustratedEmptyState } from "@/components/illustrations/empty-state";
 import { ClickableReviewSection } from "@/features/dashboard/components/pull-request-review-dialog";
 import { usePullRequestReviewDialog } from "@/features/dashboard/components/use-pull-request-review-dialog";
 import type { OverviewReviewItem } from "@/features/dashboard/server/overview-data";
-import {
-  statusStyles,
-  type ReviewStatus,
-} from "@/features/dashboard/lib/status-styles";
+import { statusStyles } from "@/features/dashboard/lib/status-styles";
 import { cn } from "@/lib/utils";
-
-function StatusBadge({ status }: { status: ReviewStatus }) {
-  const style = statusStyles[status];
-  return (
-    <Badge variant="outline" className={cn("font-medium", style.badgeClassName)}>
-      {style.label}
-    </Badge>
-  );
-}
 
 export function OverviewRecentReviews({
   reviews,
@@ -30,51 +19,85 @@ export function OverviewRecentReviews({
 
   if (reviews.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No AI reviews yet. Connect the GitHub App and open a pull request.
-      </p>
+      <IllustratedEmptyState
+        kind="reviews"
+        size="compact"
+        title="No AI reviews yet"
+        description="Connect the GitHub App and open a pull request. Reviews appear here as soon as they finish."
+      />
     );
   }
 
   return (
     <>
-      <div className="space-y-3">
-        {reviews.map((review) => (
-          <ClickableReviewSection
-            key={review.id}
-            className="flex w-full flex-col gap-3 rounded-xl border border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between"
-            onClick={() =>
-              openReview({
-                pullRequestId: review.pullRequestId,
-                reviewId: review.id,
-                title: review.pullRequest,
-                repoFullName: review.repository,
-                prNumber: review.prNumber,
-                status: review.status === "approved" ? "reviewed" : review.status,
-              })
-            }
-          >
-            <div className="min-w-0 space-y-1 text-left">
-              <p className="truncate font-medium">{review.pullRequest}</p>
-              <p className="text-sm text-muted-foreground">
-                {review.repository} #{review.prNumber} ·{" "}
-                {formatDistanceToNow(review.updatedAt, { addSuffix: true })}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              {review.blockingCount > 0 ? (
-                <Badge
-                  variant="outline"
-                  className="border-destructive/40 bg-destructive/10 text-destructive"
+      <ul className="-mx-2 divide-y divide-border/70">
+        {reviews.map((review, index) => {
+          const style = statusStyles[review.status];
+          const blocking = review.blockingCount > 0;
+          return (
+            <li key={review.id} className="sf-rise" style={{ animationDelay: `${index * 45}ms` }}>
+              <ClickableReviewSection
+                className="group/row flex w-full items-center gap-3.5 rounded-xl px-2 py-3.5 hover:bg-surface-sunken/70 sm:gap-4"
+                onClick={() =>
+                  openReview({
+                    pullRequestId: review.pullRequestId,
+                    reviewId: review.id,
+                    title: review.pullRequest,
+                    repoFullName: review.repository,
+                    prNumber: review.prNumber,
+                    status: review.status === "approved" ? "reviewed" : review.status,
+                  })
+                }
+              >
+                <span
+                  className={cn(
+                    "grid size-10 shrink-0 place-items-center rounded-xl border border-border/70 transition-transform group-hover/row:scale-105",
+                    style.tileClassName,
+                  )}
                 >
-                  {review.blockingCount} blocking
-                </Badge>
-              ) : null}
-              <StatusBadge status={review.status} />
-            </div>
-          </ClickableReviewSection>
-        ))}
-      </div>
+                  <GitPullRequest className="size-[18px]" />
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">
+                    {review.pullRequest}
+                  </span>
+                  <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                    <span className="truncate">{review.repository}</span>
+                    <span className="rounded-md bg-muted px-1.5 py-px font-mono text-[11px] text-foreground/70">
+                      #{review.prNumber}
+                    </span>
+                    <span aria-hidden>·</span>
+                    <time dateTime={review.updatedAt.toISOString()}>
+                      {formatDistanceToNow(review.updatedAt, { addSuffix: true })}
+                    </time>
+                  </span>
+                </span>
+
+                <span className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+                  {blocking ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-danger/25 bg-danger-soft px-2.5 py-1 text-xs font-semibold text-danger">
+                      <OctagonAlert className="size-3.5" />
+                      {review.blockingCount} blocking
+                    </span>
+                  ) : null}
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                      style.badgeClassName,
+                    )}
+                  >
+                    <span className={cn("size-1.5 rounded-full", style.dotClassName)} />
+                    {style.label}
+                  </span>
+                </span>
+
+                <ChevronRight className="hidden size-4 shrink-0 text-text-subtle transition-transform group-hover/row:translate-x-0.5 sm:block" />
+              </ClickableReviewSection>
+            </li>
+          );
+        })}
+      </ul>
       {dialog}
     </>
   );
