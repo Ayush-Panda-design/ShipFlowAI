@@ -63,10 +63,12 @@ function NavItem({ route, pathname }: { route: DashboardRoute; pathname: string 
         render={<Link href={route.href} />}
         className={cn(
           "rounded-lg transition-colors",
-          isActive && "bg-sidebar-accent font-medium shadow-sm",
+          "hover:bg-sidebar-accent/70",
+          isActive &&
+            "bg-primary font-medium text-primary-foreground shadow-[0_6px_16px_-6px] shadow-primary/50 hover:bg-primary hover:text-primary-foreground dark:bg-sidebar-accent dark:text-sidebar-accent-foreground dark:shadow-sm",
         )}
       >
-        <Icon className={cn(isActive && "text-primary")} />
+        <Icon className={cn(isActive && "text-primary-foreground dark:text-primary")} />
         <span>{route.title}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -87,7 +89,7 @@ export function DashboardSidebar({
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border bg-gradient-to-br from-primary/[0.04] to-transparent">
+      <SidebarHeader className="border-b border-sidebar-border bg-gradient-to-br from-primary/[0.05] to-transparent">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -95,7 +97,7 @@ export function DashboardSidebar({
               render={<Link href="/" />}
               className="data-[active=true]:bg-transparent"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-amber-500/15 shadow-sm ring-1 ring-amber-600/20">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary/10 shadow-sm ring-1 ring-primary/20">
                 <ShipFlowMark className="size-6" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">

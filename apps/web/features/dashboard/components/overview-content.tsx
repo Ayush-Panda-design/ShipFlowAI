@@ -57,9 +57,12 @@ export function OverviewContent({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Overview</h1>
-        <p className="text-sm text-muted-foreground">
+      <div className="hero-light relative overflow-hidden rounded-2xl border border-border/60 px-6 py-7 shadow-[var(--shadow-soft)] md:px-8">
+        <div className="pointer-events-none absolute -right-10 -top-16 size-64 rounded-full bg-primary/10 blur-3xl" />
+        <h1 className="relative text-3xl font-bold tracking-tight md:text-4xl">
+          Overview
+        </h1>
+        <p className="relative mt-1.5 text-sm text-muted-foreground md:text-base">
           ShipFlow delivery pipeline at a glance
         </p>
       </div>
@@ -70,10 +73,10 @@ export function OverviewContent({
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title} size="sm">
+          <Card key={stat.title} size="sm" className="border-t-2 border-t-primary/60 dark:border-t-0">
             <CardHeader>
               <CardDescription>{stat.title}</CardDescription>
-              <CardTitle className="text-2xl font-semibold">
+              <CardTitle className="text-3xl font-bold tracking-tight text-primary dark:text-foreground">
                 {stat.value}
               </CardTitle>
             </CardHeader>
