@@ -31,6 +31,10 @@ export type OverviewData = {
     detail: string;
   };
   recentReviews: OverviewReviewItem[];
+  /** Task count across the workspace (planning pipeline stage). */
+  taskCount: number;
+  /** AI reviews created per day for the trailing 7 days, oldest first. */
+  reviewsByDay: { date: string; count: number }[];
 };
 
 function mapReviewStatus(
@@ -61,6 +65,7 @@ export async function getOverviewData(
     featureRequestCount,
     prdCount,
     awaitingApprovalCount,
+    taskCount,
   ] = await Promise.all([
     countConnectedRepositories(workspaceId),
     prisma.featureRequest.count({ where: { project: { workspaceId } } }),
@@ -71,14 +76,16 @@ export async function getOverviewData(
         status: { in: ["awaiting_approval", "fix_needed", "release_checking"] },
       },
     }),
+    prisma.task.count({ where: { featureRequest: { project: { workspaceId } } } }),
   ]);
 
   let openPullRequests = 0;
   let reviewsThisWeek = 0;
   let recentReviews: OverviewReviewItem[] = [];
+  let weekReviewDates: Date[] = [];
 
   if (installation) {
-    [openPullRequests, reviewsThisWeek, recentReviews] = await Promise.all([
+    [openPullRequests, reviewsThisWeek, recentReviews, weekReviewDates] = await Promise.all([
       prisma.pullRequest.count({
         where: {
           installationId: installation.installationId,
@@ -124,8 +131,29 @@ export async function getOverviewData(
           featureTitle: review.featureRequest?.title ?? null,
         })),
       ),
+      prisma.aIReview
+        .findMany({
+          where: {
+            pullRequest: { installationId: installation.installationId },
+            createdAt: { gte: weekAgo },
+          },
+          select: { createdAt: true },
+        })
+        .then((rows) => rows.map((row) => row.createdAt)),
     ]);
   }
+
+  const reviewsByDay = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() - (6 - index));
+    const next = new Date(day);
+    next.setDate(next.getDate() + 1);
+    return {
+      date: day.toISOString(),
+      count: weekReviewDates.filter((d) => d >= day && d < next).length,
+    };
+  });
 
   const githubApp = (() => {
     if (!isGitHubAppConfigured()) {
@@ -159,5 +187,7 @@ export async function getOverviewData(
     awaitingApprovalCount,
     githubApp,
     recentReviews,
+    taskCount,
+    reviewsByDay,
   };
 }

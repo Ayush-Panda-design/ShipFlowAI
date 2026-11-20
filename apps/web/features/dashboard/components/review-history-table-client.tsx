@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 
+import { IllustratedEmptyState } from "@/components/illustrations/empty-state";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -102,11 +103,17 @@ export function ReviewHistoryTableClient() {
 
   if (data.reviews.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {hasInFlight
-          ? "Review in progress — results will appear here when complete."
-          : "No AI reviews yet."}
-      </p>
+      <div className="sf-panel">
+        <IllustratedEmptyState
+          kind="reviews"
+          title={hasInFlight ? "Review in progress" : "No AI reviews yet"}
+          description={
+            hasInFlight
+              ? "Review in progress — results will appear here when complete."
+              : "Open a pull request on a connected repository and ShipFlow will review it against your plan."
+          }
+        />
+      </div>
     );
   }
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Oxanium } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono, Oxanium } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { RouteThemeProvider as ThemeProvider } from "@/components/providers/route-theme-provider";
@@ -7,6 +7,12 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 const oxanium = Oxanium({subsets:['latin'],variable:'--font-sans'});
+
+const fraunces = Fraunces({
+  variable: "--font-display",
+  subsets: ["latin"],
+  axes: ["opsz"],
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", oxanium.variable)}
+      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, fraunces.variable, "font-sans", oxanium.variable)}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">

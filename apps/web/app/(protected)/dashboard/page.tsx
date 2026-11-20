@@ -11,5 +11,9 @@ export default async function DashboardOverviewPage() {
     getOverviewData(session.user.id, workspace.id),
     getOnboardingState(session.user.id, workspace.id),
   ]);
-  return <OverviewContent data={data} onboarding={onboarding} />;
+  return <OverviewContent
+      data={data}
+      onboarding={onboarding}
+      userName={session.user.name ?? null}
+    />;
 }

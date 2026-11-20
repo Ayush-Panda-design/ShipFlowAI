@@ -5,6 +5,7 @@ import { FolderGit2, Star } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { IllustratedEmptyState } from "@/components/illustrations/empty-state";
 import {
   Empty,
   EmptyDescription,
@@ -112,20 +113,20 @@ export function ReposList({
 
   if (repos.length === 0) {
     return (
-      <Empty className="border border-dashed">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <FolderGit2 />
-          </EmptyMedia>
-          <EmptyTitle>No repositories found</EmptyTitle>
-          <EmptyDescription>
-            The GitHub App is connected, but GitHub is not granting access to any
-            repositories yet. On GitHub, open your app installation settings,
-            choose <strong>All repositories</strong> or select specific repos,
-            then refresh this page.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <div className="sf-panel">
+        <IllustratedEmptyState
+          kind="repositories"
+          title="No repositories found"
+          description={
+            <>
+              The GitHub App is connected, but GitHub is not granting access to any
+              repositories yet. On GitHub, open your app installation settings,
+              choose <strong>All repositories</strong> or select specific repos,
+              then refresh this page.
+            </>
+          }
+        />
+      </div>
     );
   }
 

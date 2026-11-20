@@ -7,32 +7,42 @@ export type ReviewStatus =
 
 export const statusStyles: Record<
   ReviewStatus,
-  { label: string; badgeClassName: string }
+  { label: string; badgeClassName: string; dotClassName: string; tileClassName: string }
 > = {
   pending: {
     label: "Pending",
     badgeClassName:
-      "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+      "border-warning/25 bg-warning-soft text-warning",
+    dotClassName: "bg-warning",
+    tileClassName: "bg-warning-soft text-warning",
   },
   in_progress: {
     label: "In progress",
     badgeClassName:
-      "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400",
+      "border-info/25 bg-info-soft text-info",
+    dotClassName: "bg-info",
+    tileClassName: "bg-info-soft text-info",
   },
   approved: {
     label: "Approved",
     badgeClassName:
-      "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      "border-success/25 bg-success-soft text-success",
+    dotClassName: "bg-success",
+    tileClassName: "bg-success-soft text-success",
   },
   changes_requested: {
     label: "Changes requested",
     badgeClassName:
-      "border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-400",
+      "border-amber/40 bg-amber-soft text-warning",
+    dotClassName: "bg-amber",
+    tileClassName: "bg-amber-soft text-warning",
   },
   failed: {
     label: "Failed",
     badgeClassName:
-      "border-destructive/30 bg-destructive/10 text-destructive",
+      "border-danger/25 bg-danger-soft text-danger",
+    dotClassName: "bg-danger",
+    tileClassName: "bg-danger-soft text-danger",
   },
 };
 
@@ -45,7 +55,7 @@ export const githubAppStatusStyles: Record<
   connected: {
     label: "Connected",
     badgeClassName:
-      "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      "border-success/25 bg-success-soft text-success",
   },
   disconnected: {
     label: "Not connected",
@@ -54,6 +64,6 @@ export const githubAppStatusStyles: Record<
   error: {
     label: "Connection error",
     badgeClassName:
-      "border-destructive/30 bg-destructive/10 text-destructive",
+      "border-danger/25 bg-danger-soft text-danger",
   },
 };

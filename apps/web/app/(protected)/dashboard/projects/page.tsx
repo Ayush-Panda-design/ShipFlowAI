@@ -1,3 +1,4 @@
+import { IllustratedEmptyState } from "@/components/illustrations/empty-state";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 
@@ -63,7 +64,14 @@ export default async function ProjectsPage() {
 
       <div className="grid gap-3">
         {projects.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No projects yet.</p>
+          <div className="sf-panel">
+            <IllustratedEmptyState
+              kind="features"
+              size="compact"
+              title="No projects yet"
+              description="No projects yet. Create one above to start planning ideas, requirements and tasks."
+            />
+          </div>
         ) : (
           projects.map((project) => (
             <Card key={project.id}>
