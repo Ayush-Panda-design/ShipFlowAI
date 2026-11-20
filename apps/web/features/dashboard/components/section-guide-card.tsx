@@ -1,9 +1,8 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
 import { ChevronDown, HelpCircle, Sparkles } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   SECTION_GUIDES,
   type GuideItemConfig,
@@ -11,23 +10,31 @@ import {
 } from "@/features/dashboard/lib/section-guides";
 import { cn } from "@/lib/utils";
 
+const GUIDE_EVENT = "shipflow:guide-toggle";
+
 type SectionGuideCardProps = {
   section: SectionGuideId;
   className?: string;
 };
 
-function GuideItem({ icon: Icon, title, body, iconClassName }: GuideItemConfig) {
+function GuideItem({ icon: Icon, title, body }: GuideItemConfig) {
   return (
-    <div className="flex gap-2.5 rounded-lg border border-border/50 bg-background/70 p-2.5 transition-colors hover:border-primary/20 hover:bg-background">
-      <span className="mt-0.5 shrink-0">
-        <Icon className={cn("size-3.5 text-muted-foreground", iconClassName)} />
+    <div className="flex h-full items-start gap-3.5 rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:-translate-y-px hover:border-brand/25 hover:shadow-soft">
+      <span className="grid size-9 shrink-0 place-items-center rounded-[0.65rem] bg-brand-soft text-brand">
+        <Icon className="size-[18px]" />
       </span>
-      <span className="text-xs leading-relaxed">
-        <span className="font-medium text-foreground">{title}</span>
-        <span className="text-muted-foreground"> — {body}</span>
-      </span>
+      <div className="min-w-0 space-y-1">
+        <h4 className="text-sm font-semibold leading-snug text-foreground">{title}</h4>
+        <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
+      </div>
     </div>
   );
+}
+
+/** Pick columns so rows stay even: 4 items → 2×2, 3 → 3, 2 → 2, otherwise 3. */
+function gridCols(count: number) {
+  if (count === 4 || count === 2) return "lg:grid-cols-2";
+  return "lg:grid-cols-3";
 }
 
 function GuideBlock({
@@ -38,10 +45,8 @@ function GuideBlock({
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
-        {title}
-      </h3>
+    <div className="space-y-3">
+      <h3 className="sf-eyebrow">{title}</h3>
       {children}
     </div>
   );
@@ -50,62 +55,89 @@ function GuideBlock({
 export function SectionGuideCard({ section, className }: SectionGuideCardProps) {
   const guide = SECTION_GUIDES[section];
   const storageKey = `shipflow.guide.${section}`;
-  const [open, setOpen] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(storageKey) !== "0";
-  });
+  // Server renders "open"; the saved preference is applied after hydration.
+  const open = useSyncExternalStore(
+    (notify) => {
+      window.addEventListener("storage", notify);
+      window.addEventListener(GUIDE_EVENT, notify);
+      return () => {
+        window.removeEventListener("storage", notify);
+        window.removeEventListener(GUIDE_EVENT, notify);
+      };
+    },
+    () => {
+      try {
+        return window.localStorage.getItem(storageKey) !== "0";
+      } catch {
+        return true;
+      }
+    },
+    () => true,
+  );
 
   const toggle = () => {
-    setOpen((prev) => {
-      const next = !prev;
-      window.localStorage.setItem(storageKey, next ? "1" : "0");
-      return next;
-    });
+    try {
+      window.localStorage.setItem(storageKey, open ? "0" : "1");
+    } catch {
+      // storage unavailable — preference is not persisted
+    }
+    window.dispatchEvent(new Event(GUIDE_EVENT));
   };
 
   return (
     <div className={cn("space-y-2", className)}>
       {open ? (
-        <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/[0.06] via-background to-status-progress/[0.04] shadow-sm">
-          <CardHeader className="gap-1 pb-2">
-            <CardTitle className="flex items-center justify-between text-sm font-semibold">
-              <span className="flex items-center gap-2">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/10">
-                  <Sparkles className="size-4 text-primary" />
+        <section className="sf-panel overflow-hidden" aria-label={guide.title}>
+          <div className="h-1 bg-gradient-to-r from-brand via-amber to-transparent" />
+          <div className="space-y-6 p-5 sm:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand">
+                  <Sparkles className="size-5" />
                 </span>
-                {guide.title}
-              </span>
+                <div className="space-y-1.5">
+                  <p className="sf-eyebrow">Guide</p>
+                  <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                    {guide.title}
+                  </h2>
+                  <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem]">
+                    {guide.intro}
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={toggle}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-normal text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-expanded
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-brand/30 hover:text-brand"
               >
                 Hide
-                <ChevronDown className="size-3.5" />
+                <ChevronDown className="size-3.5 rotate-180" />
               </button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-xs text-muted-foreground">
-            <p className="leading-relaxed">{guide.intro}</p>
-            {guide.blocks.map((block) => (
-              <GuideBlock key={block.title} title={block.title}>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {block.items.map((item) => (
-                    <GuideItem key={item.title} {...item} />
-                  ))}
-                </div>
-              </GuideBlock>
-            ))}
-          </CardContent>
-        </Card>
+            </div>
+
+            <div className="space-y-6">
+              {guide.blocks.map((block) => (
+                <GuideBlock key={block.title} title={block.title}>
+                  <div className={cn("grid gap-3 sm:grid-cols-2", gridCols(block.items.length))}>
+                    {block.items.map((item) => (
+                      <GuideItem key={item.title} {...item} />
+                    ))}
+                  </div>
+                </GuideBlock>
+              ))}
+            </div>
+          </div>
+        </section>
       ) : (
         <div className="flex justify-end">
           <button
             type="button"
             onClick={toggle}
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/[0.04] px-3 py-1.5 text-xs font-medium text-primary/80 shadow-sm transition-all hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+            aria-expanded={false}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-medium text-muted-foreground shadow-soft transition-all hover:border-brand/30 hover:text-brand active:translate-y-px"
           >
-            <HelpCircle className="size-3.5" />
+            <HelpCircle className="size-4" />
             How does this work?
           </button>
         </div>
